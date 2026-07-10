@@ -1,0 +1,28 @@
+CV provisoire de test - Version BI et gestion de projet
+
+Candidat: Hamza Sennah
+Statut: Eleve ingenieur a l'Ecole Centrale Casablanca
+Objectif: stage oriente data, reporting et pilotage de projet numerique.
+
+Profil
+Profil interesse par l'analyse de donnees, la restitution claire des resultats et l'organisation du travail. Bon alignement avec des missions de reporting, suivi d'indicateurs, preparation de donnees et coordination de projet.
+
+Competences techniques
+Excel, Power BI, Power Query, SQL, Python, Jira, ProjectLibre, GitHub, analyse de donnees, visualisation, documentation, gestion de projet.
+
+Certifications
+Google Project Management Professional Certificate.
+Harnessing the Power of Data with Power BI.
+Preparing Data for Analysis with Microsoft Excel.
+Introduction to Git and GitHub.
+
+Projets
+AgroShield - Analyse data-driven pour ameliorer la performance de systemes agricoles. Suivi d'indicateurs, reduction des pertes, amelioration du rendement et automatisation des processus.
+
+TIPE - Traitement de donnees experimentales avec Python et Excel, presentation de resultats et analyse d'impact environnemental.
+
+ObesoScan - Visualisation de predictions et interpretation des facteurs de risque avec SHAP.
+
+Langues
+Francais courant, anglais courant, arabe natif.
+

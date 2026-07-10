@@ -1,0 +1,23 @@
+CV provisoire de test - Version generaliste junior
+
+Candidat: Hamza Sennah
+Statut: Eleve ingenieur a l'Ecole Centrale Casablanca
+Objectif: stage d'observation ou premiere mission technique polyvalente.
+
+Profil
+Eleve ingenieur curieux, rigoureux et motive par la resolution de problemes. Formation solide en mathematiques appliquees, physique, sciences de l'ingenieur et bases informatiques.
+
+Formation
+Ecole Centrale Casablanca - premiere annee du cycle ingenieur.
+CPGE Salmane Al Farissi - MPSI/MP, mathematiques, physique et sciences de l'ingenieur.
+Lycee Qualifiant Kadi Ayad - baccalaureat Sciences Mathematiques A, mention Bien.
+
+Competences techniques
+Python, Java, JavaScript, HTML, CSS, SQL, Excel, Power BI, Power Query, VS Code, Jira, Git, GitHub, ProjectLibre, structures de donnees, algorithmique.
+
+Projets
+AgroShield, ObesoScan et TIPE, avec contribution a l'analyse, a la simulation, a la presentation de donnees et a la documentation.
+
+Langues
+Arabe natif, anglais courant, francais courant.
+

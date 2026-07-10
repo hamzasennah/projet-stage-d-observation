@@ -1,0 +1,48 @@
+{
+  "notice": "Base de donnees provisoire. Ces CV sont des variantes de test inspirees du CV source de Hamza Sennah et doivent etre remplaces par de vrais CV lors de l'exploitation finale.",
+  "resumes": [
+    {
+      "id": "hamza-data-ai-rag",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version Data IA et RAG",
+      "focus": "Data, IA, RAG, embeddings et scoring explicable",
+      "source_file": "hamza_data_ai_rag.txt"
+    },
+    {
+      "id": "hamza-backend-api",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version Backend Python et API",
+      "focus": "Python, API, SQL, Git et structuration backend",
+      "source_file": "hamza_backend_api.txt"
+    },
+    {
+      "id": "hamza-bi-project",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version BI et gestion de projet",
+      "focus": "Power BI, Excel, Power Query, Jira et ProjectLibre",
+      "source_file": "hamza_bi_project.txt"
+    },
+    {
+      "id": "hamza-frontend-js",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version Frontend JavaScript",
+      "focus": "JavaScript, HTML, CSS, interface utilisateur et visualisation",
+      "source_file": "hamza_frontend_js.txt"
+    },
+    {
+      "id": "hamza-ml-explainable",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version Machine Learning explicable",
+      "focus": "Machine learning, SHAP, Streamlit, CNN et interpretation",
+      "source_file": "hamza_ml_explainable.txt"
+    },
+    {
+      "id": "hamza-generalist",
+      "candidate_name": "Hamza Sennah",
+      "title": "Version generaliste junior",
+      "focus": "Profil academique, mathematiques, bases informatiques et langues",
+      "source_file": "hamza_generalist.txt"
+    }
+  ]
+}
+

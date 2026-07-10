@@ -1,0 +1,97 @@
+{
+  "id": "stage-data-ia-rag-2026",
+  "title": "Fiche de test - Classement CV pour stage Data, IA et RAG",
+  "job_title": "Stagiaire Data / IA - Systeme de classement de CV avec RAG",
+  "job_description": "Le candidat doit contribuer a une application de classement de CV basee sur FastAPI, React, extraction de documents, embeddings, recherche vectorielle, scoring explicable et interface de visualisation. Le profil attendu combine Python, bases de donnees, machine learning, RAG, Git et capacite a documenter un projet PFE de maniere rigoureuse.",
+  "required_skills": [
+    "Python",
+    "Machine Learning",
+    "RAG",
+    "Embeddings",
+    "API",
+    "SQL",
+    "Git"
+  ],
+  "preferred_skills": [
+    "FastAPI",
+    "React",
+    "TypeScript",
+    "Power BI",
+    "Streamlit",
+    "SHAP",
+    "CI/CD",
+    "Documentation"
+  ],
+  "criteria": [
+    {
+      "label": "Competences obligatoires",
+      "weight": 40,
+      "description": "Mesure la presence des fondamentaux techniques attendus pour construire le pipeline RAG.",
+      "keywords": [
+        "python",
+        "machine learning",
+        "ia",
+        "rag",
+        "embeddings",
+        "api",
+        "sql",
+        "git"
+      ],
+      "minimum_evidence": 3
+    },
+    {
+      "label": "Experience et projets appliques",
+      "weight": 25,
+      "description": "Valorise les projets concrets, pipelines de donnees, interfaces et preuves de realisation.",
+      "keywords": [
+        "agroshield",
+        "obesoscan",
+        "pipeline de donnees",
+        "cnn",
+        "streamlit",
+        "shap",
+        "power bi",
+        "ci/cd"
+      ],
+      "minimum_evidence": 2
+    },
+    {
+      "label": "Competences souhaitees",
+      "weight": 20,
+      "description": "Mesure les competences utiles pour industrialiser et presenter le projet.",
+      "keywords": [
+        "fastapi",
+        "react",
+        "typescript",
+        "javascript",
+        "excel",
+        "jira",
+        "projectlibre",
+        "documentation"
+      ],
+      "minimum_evidence": 2
+    },
+    {
+      "label": "Coherence globale du profil",
+      "weight": 15,
+      "description": "Evalue la coherence academique, la rigueur, la communication et l'alignement avec le sujet.",
+      "keywords": [
+        "ecole centrale casablanca",
+        "mathematiques appliquees",
+        "resolution de problemes",
+        "rigoureux",
+        "innovation",
+        "francais",
+        "anglais"
+      ],
+      "minimum_evidence": 2
+    }
+  ],
+  "red_flags": [
+    "aucune experience technique",
+    "pas de python",
+    "pas de projet",
+    "copie non justifiee"
+  ]
+}
+
