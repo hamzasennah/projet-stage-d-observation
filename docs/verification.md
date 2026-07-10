@@ -4,9 +4,10 @@
 
 1. Le backend demarre avec `uvicorn app.main:app --reload`.
 2. `GET /api/health` retourne `{"status": "ok"}`.
-3. `GET /api/resumes/seed` retourne les CV provisoires.
-4. `POST /api/analyze/seed` retourne un classement trie par score decroissant.
-5. Chaque candidat contient un detail de criteres et des preuves.
+3. `POST /api/analyze/documents` accepte une fiche de test et plusieurs CV.
+4. `GET /api/resumes/seed` retourne les CV provisoires du mode test.
+5. `POST /api/analyze/seed` retourne un classement trie par score decroissant.
+6. Chaque candidat contient un detail de criteres et des preuves.
 
 ## Controle qualite
 

@@ -6,10 +6,11 @@ Projet PFE / stage d'observation : application de classement de CV par rapport a
 
 - Backend FastAPI avec parsing PDF/DOCX/TXT/MD.
 - Base SQLite provisoire alimentee par plusieurs versions de CV de test.
-- Fiche de test JSON modifiable : competences obligatoires, souhaitees, poids et mots-cles.
+- Fiche de test PDF/DOCX/TXT importable : criteres du poste, exigences, profil recherche et competences demandees.
+- Fiche de test JSON modifiable en mode avance : competences obligatoires, souhaitees, poids et mots-cles.
 - Moteur RAG local : decoupage en chunks, vectorisation TF-IDF, recuperation des passages pertinents.
 - Scoring explicable : score final, detail par critere, points forts, points faibles et preuves.
-- Frontend React/TypeScript pour analyser la base seed ou uploader de vrais CV.
+- Frontend React/TypeScript pour importer une fiche de test, importer des CV et afficher le classement.
 - Tests backend avec `pytest`.
 
 ## Structure
@@ -29,6 +30,15 @@ frontend/
   src/
 docs/
 ```
+
+## Flux principal
+
+1. Importer une fiche de test PDF contenant les criteres du poste.
+2. Importer un ou plusieurs CV PDF.
+3. Cliquer sur `Analyser et classer`.
+4. Lire le classement final avec score, points forts, points faibles et preuves.
+
+La fiche de test n'est pas la base de donnees : elle sert de reference d'evaluation. Les CV sont les documents analyses et classes.
 
 ## Lancer le backend
 
@@ -74,8 +84,8 @@ Les fichiers dans `data/resumes/seed/` sont des variantes de test inspirees du C
 
 - `GET /api/criteria/default` : fiche de test par defaut.
 - `GET /api/resumes/seed` : CV de la base provisoire.
+- `POST /api/analyze/documents` : analyse une fiche de test importee et des CV importes.
 - `POST /api/analyze/seed` : analyse la base provisoire.
-- `POST /api/analyze/upload` : analyse des CV uploades.
 - `GET /api/analyses/{id}` : recupere une analyse sauvegardee.
 
 ## Notes de qualite

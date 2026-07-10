@@ -24,21 +24,20 @@ export async function analyzeSeed(
   return response.data;
 }
 
-export async function analyzeUpload(
+export async function analyzeDocuments(
+  criteriaFile: File,
   files: File[],
-  criteriaSheet: CriteriaSheet,
   topK = 5,
 ): Promise<RankingResponse> {
   const formData = new FormData();
+  formData.append("criteria_file", criteriaFile);
   files.forEach((file) => formData.append("files", file));
-  formData.append("criteria_json", JSON.stringify(criteriaSheet));
   formData.append("top_k", String(topK));
 
   const response = await axios.post<RankingResponse>(
-    `${API_URL}/api/analyze/upload`,
+    `${API_URL}/api/analyze/documents`,
     formData,
     { headers: { "Content-Type": "multipart/form-data" } },
   );
   return response.data;
 }
-

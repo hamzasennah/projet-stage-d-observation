@@ -23,11 +23,12 @@ def keyword_in_text(keyword: str, text: str) -> bool:
     text_norm = normalize_text(text)
     if not keyword_norm:
         return False
+    compact_keyword = keyword_norm.replace(" ", "")
+    compact_text = text_norm.replace(" ", "")
     if " " in keyword_norm:
-        return keyword_norm in text_norm
-    return keyword_norm in set(tokenize(text_norm))
+        return keyword_norm in text_norm or compact_keyword in compact_text
+    return keyword_norm in set(tokenize(text_norm)) or compact_keyword in compact_text
 
 
 def matched_keywords(keywords: list[str], text: str) -> list[str]:
     return [keyword for keyword in keywords if keyword_in_text(keyword, text)]
-

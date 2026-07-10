@@ -182,6 +182,13 @@ button {
   align-items: start;
 }
 
+.document-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(520px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .side-stack {
   display: grid;
   gap: 18px;
@@ -329,6 +336,60 @@ textarea:focus {
 
 .upload-panel input {
   min-height: 44px;
+}
+
+.document-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.file-input-card {
+  min-height: 132px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid #dfe6df;
+  border-radius: 8px;
+  background: #f9fbf9;
+}
+
+.file-input-card span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #24332e;
+  font-size: 0.95rem;
+}
+
+.file-input-card input {
+  min-height: 44px;
+  background: #ffffff;
+}
+
+.file-input-card small {
+  color: #63716b;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.advanced-section {
+  margin-top: 18px;
+}
+
+.advanced-section > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #31544c;
+  font-weight: 900;
+}
+
+.advanced-grid {
+  margin-top: 10px;
 }
 
 .ranking-table {
@@ -492,6 +553,7 @@ blockquote {
 }
 
 @media (max-width: 1080px) {
+  .document-grid,
   .workspace-grid {
     grid-template-columns: 1fr;
   }
@@ -509,6 +571,7 @@ blockquote {
 
   .topbar,
   .topbar-actions,
+  .document-grid,
   .detail-grid,
   .skill-grid {
     align-items: stretch;
@@ -538,4 +601,3 @@ blockquote {
     grid-template-columns: 1fr;
   }
 }
-

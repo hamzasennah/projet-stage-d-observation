@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 from hashlib import sha1
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -17,7 +16,11 @@ from .schemas import (
     RankingResponse,
     ResumeOutput,
 )
-from .services.criteria import load_default_criteria, validate_criteria_weights
+from .services.criteria import (
+    criteria_from_document_text,
+    load_default_criteria,
+    validate_criteria_weights,
+)
 from .services.parser import SUPPORTED_EXTENSIONS, extract_text
 from .services.rag_engine import analysis_to_output, ranking_response_to_dict
 from .services.ranking import analyze_resume_records, text_resumes_to_records
@@ -115,39 +118,33 @@ def analyze_text(request: AnalyzeTextRequest) -> RankingResponse:
     return _build_response(request.criteria_sheet, analyses)
 
 
-@app.post(f"{settings.api_prefix}/analyze/upload", response_model=RankingResponse)
-async def analyze_upload(
+@app.post(f"{settings.api_prefix}/analyze/documents", response_model=RankingResponse)
+async def analyze_documents(
+    criteria_file: Annotated[UploadFile, File(...)],
     files: Annotated[list[UploadFile], File(...)],
-    job_description: Annotated[str | None, Form()] = None,
-    criteria_json: Annotated[str | None, Form()] = None,
     top_k: Annotated[int, Form(ge=1, le=20)] = 5,
 ) -> RankingResponse:
-    sheet = _sheet_from_upload(job_description, criteria_json)
-    validate_criteria_weights(sheet)
-    records: list[ResumeRecord] = []
-
-    for upload in files:
-        suffix = Path(upload.filename or "").suffix.lower()
-        if suffix not in SUPPORTED_EXTENSIONS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Format non supporte pour {upload.filename}.",
-            )
-        saved_path = await _save_upload(upload)
-        text = extract_text(saved_path)
-        records.append(
-            ResumeRecord(
-                id=_record_id(upload.filename or saved_path.name),
-                candidate_name=Path(upload.filename or saved_path.name).stem,
-                title=f"CV importe - {upload.filename}",
-                focus="CV importe par l'utilisateur",
-                source_file=str(saved_path),
-                raw_text=text,
-            )
+    criteria_path = await _save_upload(criteria_file, prefix="criteria_")
+    criteria_text = extract_text(criteria_path)
+    try:
+        sheet = criteria_from_document_text(
+            criteria_text,
+            criteria_file.filename or criteria_path.name,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    records = [await _upload_to_resume_record(upload) for upload in files]
     analyses = analyze_resume_records(sheet, records, top_k=top_k)
-    return _build_response(sheet, analyses)
+    response = _build_response(sheet, analyses)
+    analysis_id = save_analysis(
+        criteria_id=sheet.id,
+        criteria_title=sheet.title,
+        job_title=sheet.job_title,
+        result=ranking_response_to_dict(response),
+    )
+    response.analysis_id = analysis_id
+    return response
 
 
 @app.get(f"{settings.api_prefix}/analyses/{{analysis_id}}")
@@ -168,28 +165,33 @@ def _build_response(sheet: CriteriaSheetInput, analyses) -> RankingResponse:
     )
 
 
-def _sheet_from_upload(
-    job_description: str | None,
-    criteria_json: str | None,
-) -> CriteriaSheetInput:
-    if criteria_json:
-        try:
-            payload = json.loads(criteria_json)
-            return CriteriaSheetInput(**payload)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=400,
-                detail=f"criteria_json invalide: {exc}",
-            ) from exc
-    sheet = load_default_criteria()
-    if job_description:
-        sheet.job_description = job_description
-    return sheet
+async def _upload_to_resume_record(upload: UploadFile) -> ResumeRecord:
+    suffix = Path(upload.filename or "").suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporte pour {upload.filename}.",
+        )
+    saved_path = await _save_upload(upload, prefix="resume_")
+    text = extract_text(saved_path)
+    return ResumeRecord(
+        id=_record_id(upload.filename or saved_path.name),
+        candidate_name=Path(upload.filename or saved_path.name).stem,
+        title=f"CV importe - {upload.filename}",
+        focus="CV importe par l'utilisateur",
+        source_file=str(saved_path),
+        raw_text=text,
+    )
 
 
-async def _save_upload(upload: UploadFile) -> Path:
+async def _save_upload(upload: UploadFile, prefix: str = "") -> Path:
     suffix = Path(upload.filename or "resume.txt").suffix.lower()
-    target = settings.upload_dir / f"{_record_id(upload.filename or 'resume')}{suffix}"
+    if suffix not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporte pour {upload.filename}.",
+        )
+    target = settings.upload_dir / f"{prefix}{_record_id(upload.filename or 'document')}{suffix}"
     content = await upload.read()
     target.write_bytes(content)
     return target
