@@ -41,9 +41,9 @@ button {
 
 .topbar {
   min-height: 92px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 20px;
   border-bottom: 1px solid #d8dfd7;
   margin-bottom: 18px;
@@ -77,6 +77,11 @@ button {
   gap: 10px;
 }
 
+.topbar-actions {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 .status,
 .count,
 .status-ok,
@@ -88,7 +93,11 @@ button {
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.35;
+}
+
+.status {
+  max-width: min(760px, 52vw);
 }
 
 .status {

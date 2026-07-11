@@ -16,7 +16,7 @@ from .services.criteria import (
     load_default_criteria,
     validate_criteria_weights,
 )
-from .services.gemini_client import GeminiConfigurationError
+from .services.gemini_client import GeminiConfigurationError, GeminiQuotaError
 from .services.parser import SUPPORTED_EXTENSIONS, extract_text
 from .services.rag_engine import analysis_to_output
 from .services.ranking import analyze_resume_records
@@ -94,6 +94,8 @@ def _run_rag_analysis(
 ):
     try:
         return analyze_resume_records(sheet, records, top_k=top_k)
+    except GeminiQuotaError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     except GeminiConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:

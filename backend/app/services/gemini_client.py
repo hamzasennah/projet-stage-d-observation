@@ -16,6 +16,10 @@ class GeminiConfigurationError(RuntimeError):
     pass
 
 
+class GeminiQuotaError(RuntimeError):
+    pass
+
+
 class GeminiClient:
     _max_retry_attempts = 4
 
@@ -63,6 +67,8 @@ class GeminiClient:
                     max_attempts=self._max_retry_attempts,
                 )
                 return _loads_json(response.text or "")
+            except GeminiQuotaError:
+                raise
             except Exception as exc:
                 last_error = exc
         raise RuntimeError(f"Echec generation Gemini: {last_error}") from last_error
@@ -114,6 +120,8 @@ class GeminiClient:
                 embedding = getattr(response, "embedding", None)
                 if embedding:
                     return [list(embedding.values)]
+            except GeminiQuotaError:
+                raise
             except Exception as exc:
                 last_error = exc
         raise RuntimeError(f"Echec embeddings Gemini: {last_error}") from last_error
@@ -167,9 +175,9 @@ def _with_quota_retry(call, max_attempts: int):
         except Exception as exc:
             last_error = exc
             if _is_retryable_quota_error(exc) and attempt == max_attempts:
-                raise RuntimeError(
+                raise GeminiQuotaError(
                     "Quota Gemini depasse apres plusieurs tentatives. "
-                    "Attendez le reset du quota ou relancez avec moins de CV."
+                    "Attendez le reset du quota quotidien ou utilisez une cle avec plus de quota."
                 ) from exc
             if not _is_retryable_quota_error(exc):
                 raise
