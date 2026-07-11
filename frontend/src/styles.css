@@ -262,6 +262,11 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
+.file-input-card .input-warning {
+  color: #8a4f02;
+  font-weight: 900;
+}
+
 .full-width {
   width: 100%;
 }
