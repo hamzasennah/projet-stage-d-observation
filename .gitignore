@@ -10,6 +10,7 @@ data/chroma/
 data/uploads/*
 !data/uploads/.gitkeep
 logs/
+output/
 
 # Legacy local files from earlier prototypes
 data/*.sqlite3

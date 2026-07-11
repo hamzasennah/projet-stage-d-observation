@@ -93,6 +93,17 @@ pnpm run dev
 
 Interface : [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
+## Generer des CV PDF de test
+
+Le script suivant cree 20 CV PDF anonymises a partir de l'archive Kaggle locale. Les fichiers sont generes dans `output/pdf/test_cvs/`, ignore par Git.
+
+```powershell
+cd "C:\Users\pc\Documents\travail demander pour mon stage"
+python tools/generate_test_cv_pdfs.py "C:\Users\pc\Desktop\archive.zip"
+```
+
+Ces PDF sont destines a etre uploades manuellement dans l'interface, avec la fiche de poste PDF.
+
 ## Tests
 
 ```powershell
@@ -111,4 +122,3 @@ Les tests activent `RAG_TEST_MODE=1` dans `backend/tests/conftest.py` pour valid
 ## Endpoint principal
 
 - `POST /api/analyze/documents` : analyse une fiche de poste importee et un ou plusieurs CV PDF importes.
-
