@@ -25,15 +25,15 @@ class ChromaResumeStore:
             metadata={"hnsw:space": "cosine"},
         )
 
-    def reset_analysis(self, analysis_id: str) -> None:
+    def reset_run(self, run_id: str) -> None:
         try:
-            self._collection.delete(where={"analysis_id": analysis_id})
+            self._collection.delete(where={"run_id": run_id})
         except Exception:
             pass
 
     def index_resume(
         self,
-        analysis_id: str,
+        run_id: str,
         resume: ResumeRecord,
         chunks: list[str],
         embeddings: list[list[float]],
@@ -43,12 +43,12 @@ class ChromaResumeStore:
         ids: list[str] = []
         metadatas: list[dict[str, str | int]] = []
         for index, _ in enumerate(chunks, start=1):
-            ids.append(f"{analysis_id}:{resume.id}:{index}")
+            ids.append(f"{run_id}:{resume.id}:{index}")
             metadatas.append(
                 {
-                    "analysis_id": analysis_id,
+                    "run_id": run_id,
                     "resume_id": resume.id,
-                    "analysis_resume_id": f"{analysis_id}:{resume.id}",
+                    "run_resume_id": f"{run_id}:{resume.id}",
                     "candidate_name": resume.candidate_name,
                     "resume_title": resume.title,
                     "source_file": resume.source_file,
@@ -64,7 +64,7 @@ class ChromaResumeStore:
 
     def search_resume(
         self,
-        analysis_id: str,
+        run_id: str,
         resume_id: str,
         query_embedding: list[float],
         top_k: int,
@@ -72,7 +72,7 @@ class ChromaResumeStore:
         results = self._collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
-            where={"analysis_resume_id": f"{analysis_id}:{resume_id}"},
+            where={"run_resume_id": f"{run_id}:{resume_id}"},
             include=["documents", "metadatas", "distances"],
         )
         documents = results.get("documents", [[]])[0]

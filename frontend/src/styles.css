@@ -30,18 +30,9 @@ button {
   border: 0;
 }
 
-.loading-shell,
 .app-shell {
   width: min(1480px, calc(100vw - 32px));
   margin: 0 auto;
-}
-
-.loading-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  color: #31544c;
-  font-weight: 700;
 }
 
 .app-shell {
@@ -80,7 +71,6 @@ button {
 }
 
 .topbar-actions,
-.criteria-toolbar,
 .title-with-icon {
   display: flex;
   align-items: center;
@@ -175,23 +165,11 @@ button {
   transform: none;
 }
 
-.workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.4fr);
-  gap: 18px;
-  align-items: start;
-}
-
 .document-grid {
   display: grid;
   grid-template-columns: minmax(360px, 440px) minmax(520px, 1fr);
   gap: 18px;
   align-items: start;
-}
-
-.side-stack {
-  display: grid;
-  gap: 18px;
 }
 
 .panel {
@@ -200,11 +178,6 @@ button {
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(32, 48, 42, 0.08);
   padding: 18px;
-}
-
-.criteria-panel {
-  position: sticky;
-  top: 16px;
 }
 
 .panel-header {
@@ -256,88 +229,6 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(33, 107, 90, 0.12);
 }
 
-.criteria-panel > label,
-.skill-grid,
-.criteria-list {
-  margin-top: 12px;
-}
-
-.skill-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.criteria-toolbar {
-  justify-content: space-between;
-  margin-top: 14px;
-}
-
-.criteria-list {
-  display: grid;
-  gap: 10px;
-}
-
-.criterion-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid #e1e7e1;
-  border-radius: 8px;
-  background: #f9fbf9;
-}
-
-.criterion-main {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.criterion-actions {
-  width: 82px;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.weight-input {
-  min-height: 38px;
-  text-align: center;
-  padding: 0 6px;
-}
-
-.resume-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.resume-item {
-  min-height: 84px;
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f8faf8;
-  border: 1px solid #e2e8e2;
-}
-
-.resume-item strong {
-  color: #1c2c27;
-}
-
-.resume-item span {
-  color: #5e6c66;
-  font-size: 0.9rem;
-  line-height: 1.35;
-}
-
-.upload-panel input {
-  min-height: 44px;
-}
-
 .document-panel {
   display: grid;
   gap: 14px;
@@ -373,23 +264,6 @@ textarea:focus {
 
 .full-width {
   width: 100%;
-}
-
-.advanced-section {
-  margin-top: 18px;
-}
-
-.advanced-section > summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: #31544c;
-  font-weight: 900;
-}
-
-.advanced-grid {
-  margin-top: 10px;
 }
 
 .ranking-table {
@@ -553,27 +427,20 @@ blockquote {
 }
 
 @media (max-width: 1080px) {
-  .document-grid,
-  .workspace-grid {
+  .document-grid {
     grid-template-columns: 1fr;
-  }
-
-  .criteria-panel {
-    position: static;
   }
 }
 
 @media (max-width: 760px) {
-  .app-shell,
-  .loading-shell {
+  .app-shell {
     width: min(100vw - 20px, 1480px);
   }
 
   .topbar,
   .topbar-actions,
   .document-grid,
-  .detail-grid,
-  .skill-grid {
+  .detail-grid {
     align-items: stretch;
     flex-direction: column;
     grid-template-columns: 1fr;

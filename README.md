@@ -1,17 +1,16 @@
 # AI-Powered Resume Ranking System avec vrai RAG
 
-Projet PFE / stage d'observation : application de classement de CV par rapport a une fiche de poste, avec embeddings Gemini, base vectorielle ChromaDB, generation Gemini et dashboard React.
+Projet PFE / stage d'observation : application de classement de CV par rapport a une fiche de poste, avec embeddings Gemini, base vectorielle ChromaDB, generation Gemini et interface React.
 
 ## Ce qui est livre
 
-- Backend FastAPI avec parsing PDF/DOCX/TXT/MD.
-- Pipeline RAG reel : extraction, chunks, embeddings Gemini, stockage ChromaDB, retrieval par similarite.
+- Backend FastAPI avec parsing PDF pour la fiche de poste et les CV.
+- Pipeline RAG reel : extraction, chunks, embeddings Gemini, stockage vectoriel ChromaDB, retrieval par similarite.
 - Analyse LLM Gemini : score, resume, points forts, points faibles, detail par critere et preuves.
-- Fiche de test PDF/DOCX/TXT importable : criteres du poste, exigences, profil recherche et competences demandees.
-- Base SQLite pour stocker les CV importes et les resultats d'analyse.
-- Importeur Kaggle pour `archive.zip` : lecture de `Resume/Resume.csv`, stockage SQLite, indexation ChromaDB.
-- Frontend React/TypeScript pour importer une fiche de test, importer des CV et afficher le classement.
+- Frontend React/TypeScript pour importer une fiche de poste, importer des CV PDF et afficher le classement.
 - Tests backend avec `pytest` en mode `RAG_TEST_MODE=1` sans appel API externe.
+
+Il n'y a plus de base SQLite ni de base Kaggle dans le flux applicatif. Les CV importes manuellement deviennent la base documentaire temporaire de l'analyse : ils sont decoupes, vectorises et indexes dans ChromaDB pour le RAG.
 
 ## Modeles Gemini
 
@@ -22,7 +21,7 @@ Configuration actuelle :
 - Embeddings : `text-embedding-004`
 - Repli embeddings : `gemini-embedding-001`
 
-Note : `gemini-2.5-flash-lite` et `gemini-2.5-flash` peuvent apparaitre dans la liste des modeles, mais cette cle/projet renvoie une erreur `NOT_FOUND` pour ces modeles. Les alias `gemini-flash-lite-latest` et `gemini-flash-latest` ont ete testes avec succes.
+Note : `gemini-2.5-flash-lite` et `gemini-2.5-flash` peuvent apparaitre dans certaines recommandations, mais cette cle/projet renvoie une erreur `NOT_FOUND` pour ces modeles. Les alias `gemini-flash-lite-latest` et `gemini-flash-latest` ont ete testes avec succes.
 
 ## Structure
 
@@ -30,13 +29,12 @@ Note : `gemini-2.5-flash-lite` et `gemini-2.5-flash` peuvent apparaitre dans la 
 backend/
   app/
     main.py
-    database.py
     services/
       gemini_client.py
       vector_store.py
       ranking.py
-      kaggle_importer.py
-  scripts/import_kaggle_archive.py
+      parser.py
+      criteria.py
 data/
   criteria/spm_data_analyst_packaging.json
   chroma/              # genere localement, ignore par Git
@@ -48,7 +46,7 @@ docs/
 
 ## Configuration locale
 
-Créer un fichier `.env` a la racine du projet, jamais commite :
+Creer un fichier `.env` a la racine du projet, jamais commite :
 
 ```env
 LLM_PROVIDER=gemini
@@ -57,19 +55,19 @@ GEMINI_GENERATION_MODEL=gemini-flash-lite-latest
 GEMINI_FALLBACK_MODEL=gemini-flash-latest
 GEMINI_EMBEDDING_MODEL=text-embedding-004
 GEMINI_EMBEDDING_FALLBACK_MODEL=gemini-embedding-001
-CHROMA_PATH=data/chroma
 VITE_API_URL=http://127.0.0.1:8001
 ```
 
 ## Flux principal
 
-1. Importer une fiche de test PDF contenant les criteres du poste.
+1. Importer une fiche de poste PDF contenant les criteres du poste.
 2. Importer un ou plusieurs CV PDF.
 3. Cliquer sur `Analyser et classer`.
-4. Le backend extrait les textes, cree les embeddings Gemini, indexe les chunks dans ChromaDB, recupere les preuves pertinentes, puis Gemini produit l'analyse finale.
-5. Lire le classement final avec score, points forts, points faibles et preuves.
+4. Le backend extrait les textes, decoupe les CV en chunks, cree les embeddings Gemini et indexe les chunks dans ChromaDB.
+5. Le moteur RAG recupere les passages les plus pertinents de chaque CV par rapport a la fiche de poste.
+6. Gemini produit l'analyse finale : score, resume, points forts, points faibles, detail par critere et preuves.
 
-La fiche de test n'est pas la base de donnees : elle sert de reference d'evaluation. Les CV sont les documents analyses et classes.
+La fiche de poste n'est pas une base de donnees. Elle sert de reference d'evaluation. Les CV uploades sont les documents analyses et forment l'index vectoriel ChromaDB de l'analyse courante.
 
 ## Lancer le backend
 
@@ -95,43 +93,22 @@ pnpm run dev
 
 Interface : [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
-## Importer la base Kaggle
-
-Test limite, recommande pour verifier quota et configuration :
-
-```powershell
-cd "C:\Users\pc\Documents\travail demander pour mon stage\backend"
-python scripts/import_kaggle_archive.py "C:\Users\pc\Desktop\archive.zip" --limit 20 --category INFORMATION-TECHNOLOGY --category BUSINESS-DEVELOPMENT
-```
-
-Import complet :
-
-```powershell
-python scripts/import_kaggle_archive.py "C:\Users\pc\Desktop\archive.zip"
-```
-
-L'import complet indexe les chunks dans ChromaDB avec Gemini embeddings. Il peut consommer du quota API selon le nombre de CV et de chunks.
-
-Une fois l'import lance, l'endpoint `POST /api/analyze/database` classe les CV de la base sans les reuploader. Parametres multipart utiles :
-
-- `criteria_file` : fiche de poste PDF/DOCX/TXT/MD.
-- `limit` : nombre maximum de CV a analyser, 20 par defaut.
-- `category` : categorie Kaggle optionnelle, par exemple `INFORMATION-TECHNOLOGY`.
-- `top_k` : nombre de preuves RAG recuperees par CV.
-
 ## Tests
 
 ```powershell
 cd "C:\Users\pc\Documents\travail demander pour mon stage\backend"
 pytest
+python -m compileall app
+```
+
+```powershell
+cd "C:\Users\pc\Documents\travail demander pour mon stage\frontend"
+pnpm run build
 ```
 
 Les tests activent `RAG_TEST_MODE=1` dans `backend/tests/conftest.py` pour valider ChromaDB sans consommer l'API Gemini.
 
-## Endpoints principaux
+## Endpoint principal
 
-- `POST /api/analyze/documents` : analyse une fiche de test importee et des CV importes.
-- `POST /api/analyze/database` : analyse une fiche de test importee contre les CV Kaggle deja importes.
-- `GET /api/resumes/seed` : liste les CV stockes dans SQLite.
-- `POST /api/analyze/seed` : analyse les CV stockes dans SQLite avec la fiche par defaut.
-- `GET /api/analyses/{id}` : recupere une analyse sauvegardee.
+- `POST /api/analyze/documents` : analyse une fiche de poste importee et un ou plusieurs CV PDF importes.
+

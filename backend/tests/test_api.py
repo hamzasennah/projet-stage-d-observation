@@ -10,15 +10,6 @@ def test_health_endpoint() -> None:
     assert response.json()["status"] == "ok"
 
 
-def test_analyze_seed_endpoint() -> None:
-    with TestClient(app) as client:
-        response = client.post("/api/analyze/seed", json={"top_k": 3})
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["total_candidates"] >= 3
-    assert payload["ranking"][0]["match_score"] >= payload["ranking"][-1]["match_score"]
-
-
 def test_analyze_documents_endpoint() -> None:
     criteria = (
         "Fiche de test stage Data IA RAG. Competences demandees: Python, "

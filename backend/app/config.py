@@ -17,9 +17,7 @@ class Settings:
     data_dir: Path = project_root / "data"
     upload_dir: Path = data_dir / "uploads"
     chroma_path: Path = data_dir / "chroma"
-    database_path: Path = data_dir / "resume_ranking.sqlite3"
     default_criteria_path: Path = data_dir / "criteria" / "spm_data_analyst_packaging.json"
-    seed_manifest_path: Path = data_dir / "resumes" / "seed_manifest.json"
     allowed_origins: tuple[str, ...] = (
         "http://localhost:5173",
         "http://127.0.0.1:5173",

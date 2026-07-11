@@ -2,21 +2,21 @@
 
 ## Objectif
 
-Classer plusieurs CV par rapport a une fiche de test importee, en produisant un score defendable et des preuves textuelles. La fiche contient les criteres du poste, les exigences, le profil recherche et les competences demandees.
+Classer plusieurs CV uploades manuellement par rapport a une fiche de poste importee, en produisant un score defendable et des preuves textuelles. La fiche contient les criteres du poste, les exigences, le profil recherche et les competences demandees.
 
 ## Flux principal
 
 ```mermaid
 flowchart TD
-    A["Upload fiche de test PDF"] --> B["Frontend React"]
+    A["Upload fiche de poste PDF"] --> B["Frontend React"]
     C["Upload CV PDF candidats"] --> B
     B --> D["Backend FastAPI"]
     D --> E["Extraction texte fiche"]
     D --> F["Extraction texte CV"]
     E --> G["Reference d'evaluation"]
-    F --> H["Decoupage CV en chunks"]
-    H --> I["Gemini embeddings"]
-    I --> J["ChromaDB persistante"]
+    F --> H["Decoupage des CV en chunks"]
+    H --> I["Embeddings Gemini"]
+    I --> J["ChromaDB: index vectoriel de l'analyse"]
     G --> K["Embedding requete fiche"]
     K --> J
     J --> L["Retrieval des passages pertinents"]
@@ -29,20 +29,21 @@ flowchart TD
 ## Choix techniques
 
 - FastAPI : API claire, Swagger automatique, support upload multi-fichiers.
-- PyMuPDF + python-docx : extraction PDF/DOCX/TXT/MD.
+- PyMuPDF : extraction du texte des PDF.
 - Gemini embeddings : `text-embedding-004`, avec repli `gemini-embedding-001`.
-- ChromaDB : stockage vectoriel persistant des chunks.
+- ChromaDB : base vectorielle des chunks de CV uploades.
 - Gemini generation : `gemini-flash-lite-latest`, avec repli `gemini-flash-latest`.
-- SQLite : stockage des CV importes et des analyses.
 - React + TypeScript : interface stable et typage des reponses.
 
-## Entrees principales
+## Role des donnees
 
-- Fiche de test : document de reference d'evaluation.
-- CV candidats : documents a analyser et classer.
-- Archive Kaggle : source de base CV importable via `backend/scripts/import_kaggle_archive.py`.
-- Base importee : analysable via `POST /api/analyze/database` avec une fiche de poste.
+- Fiche de poste : reference d'evaluation, pas une base de donnees.
+- CV candidats : documents a analyser et a classer.
+- ChromaDB : base vectorielle construite a partir des CV uploades pendant l'analyse.
+
+Il n'y a pas de base SQLite dans l'architecture applicative. Les CV ne sont pas precharges dans une base classique : l'utilisateur les depose, puis le systeme les transforme en vecteurs et les exploite via ChromaDB.
 
 ## Important
 
-Le systeme n'utilise plus TF-IDF pour le RAG applicatif. TF-IDF a ete remplace par ChromaDB + embeddings Gemini. Le mode de test automatise utilise uniquement des embeddings deterministes pour eviter la consommation API pendant `pytest`.
+Le systeme n'utilise pas TF-IDF pour le RAG applicatif. Le retrieval passe par ChromaDB + embeddings Gemini. Le mode de test automatise utilise uniquement des embeddings deterministes pour eviter la consommation API pendant `pytest`.
+

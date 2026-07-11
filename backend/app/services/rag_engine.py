@@ -1,7 +1,5 @@
-import json
-
 from ..models import CandidateAnalysis, CriterionResult, Evidence
-from ..schemas import CandidateOutput, CriterionOutput, EvidenceOutput, RankingResponse
+from ..schemas import CandidateOutput, CriterionOutput, EvidenceOutput
 
 
 def evidence_to_output(item: Evidence) -> EvidenceOutput:
@@ -38,10 +36,4 @@ def analysis_to_output(item: CandidateAnalysis) -> CandidateOutput:
         ],
         evidence=[evidence_to_output(evidence) for evidence in item.evidence],
     )
-
-
-def ranking_response_to_dict(response: RankingResponse) -> dict:
-    if hasattr(response, "model_dump_json"):
-        return json.loads(response.model_dump_json())
-    return json.loads(response.json())
 

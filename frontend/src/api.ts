@@ -1,28 +1,7 @@
 import axios from "axios";
-import type { CriteriaSheet, RankingResponse, ResumeSeed } from "./types";
+import type { RankingResponse } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
-
-export async function getDefaultCriteria(): Promise<CriteriaSheet> {
-  const response = await axios.get<CriteriaSheet>(`${API_URL}/api/criteria/default`);
-  return response.data;
-}
-
-export async function getSeedResumes(): Promise<ResumeSeed[]> {
-  const response = await axios.get<ResumeSeed[]>(`${API_URL}/api/resumes/seed`);
-  return response.data;
-}
-
-export async function analyzeSeed(
-  criteriaSheet: CriteriaSheet,
-  topK = 5,
-): Promise<RankingResponse> {
-  const response = await axios.post<RankingResponse>(`${API_URL}/api/analyze/seed`, {
-    criteria_sheet: criteriaSheet,
-    top_k: topK,
-  });
-  return response.data;
-}
+const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001";
 
 export async function analyzeDocuments(
   criteriaFile: File,

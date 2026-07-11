@@ -27,7 +27,7 @@ export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
         </span>
         <input
           type="file"
-          accept=".pdf,.docx,.txt,.md"
+          accept=".pdf"
           disabled={disabled}
           onChange={(event) => setCriteriaFile(event.target.files?.[0] ?? null)}
         />
@@ -42,14 +42,14 @@ export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
         <input
           type="file"
           multiple
-          accept=".pdf,.docx,.txt,.md"
+          accept=".pdf"
           disabled={disabled}
           onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
         />
         <small>
           {files.length
             ? files.map((file) => file.name).join(", ")
-            : "Un ou plusieurs CV PDF a classer"}
+            : "Un ou plusieurs CV PDF uniquement"}
         </small>
       </label>
 
@@ -65,4 +65,3 @@ export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
     </section>
   );
 }
-

@@ -20,24 +20,6 @@ class CriteriaSheetInput(BaseModel):
     red_flags: list[str] = Field(default_factory=list)
 
 
-class AnalyzeSeedRequest(BaseModel):
-    criteria_sheet: CriteriaSheetInput | None = None
-    top_k: int = Field(default=5, ge=1, le=20)
-
-
-class AnalyzeTextResume(BaseModel):
-    candidate_name: str
-    title: str
-    raw_text: str
-    focus: str = ""
-
-
-class AnalyzeTextRequest(BaseModel):
-    criteria_sheet: CriteriaSheetInput
-    resumes: list[AnalyzeTextResume]
-    top_k: int = Field(default=5, ge=1, le=20)
-
-
 class EvidenceOutput(BaseModel):
     source: str
     text: str
@@ -71,13 +53,3 @@ class RankingResponse(BaseModel):
     job_title: str
     total_candidates: int
     ranking: list[CandidateOutput]
-    analysis_id: int | None = None
-
-
-class ResumeOutput(BaseModel):
-    id: str
-    candidate_name: str
-    title: str
-    focus: str
-    source_file: str
-

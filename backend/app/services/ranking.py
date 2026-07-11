@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from hashlib import sha1
 from uuid import uuid4
 
 from ..config import settings
 from ..models import CandidateAnalysis, CriterionResult, Evidence, ResumeRecord
-from ..schemas import AnalyzeTextResume, CriteriaSheetInput
+from ..schemas import CriteriaSheetInput
 from .chunker import split_text
 from .criteria import criteria_query, validate_criteria_weights
 from .gemini_client import get_gemini_client
@@ -22,10 +21,10 @@ def analyze_resume_records(
     if not resumes:
         return []
 
-    analysis_namespace = f"analysis_{uuid4().hex}"
+    run_id = f"run_{uuid4().hex}"
     gemini = get_gemini_client()
     store = ChromaResumeStore()
-    store.reset_analysis(analysis_namespace)
+    store.reset_run(run_id)
 
     query = criteria_query(sheet)
     query_embedding = gemini.embed_query(query)
@@ -38,9 +37,9 @@ def analyze_resume_records(
             continue
 
         chunk_embeddings = gemini.embed_documents(chunks)
-        store.index_resume(analysis_namespace, resume, chunks, chunk_embeddings)
+        store.index_resume(run_id, resume, chunks, chunk_embeddings)
         retrieved = store.search_resume(
-            analysis_id=analysis_namespace,
+            run_id=run_id,
             resume_id=resume.id,
             query_embedding=query_embedding,
             top_k=top_k,
@@ -52,23 +51,6 @@ def analyze_resume_records(
 
     analyses.sort(key=lambda item: item.match_score, reverse=True)
     return analyses
-
-
-def text_resumes_to_records(resumes: list[AnalyzeTextResume]) -> list[ResumeRecord]:
-    records: list[ResumeRecord] = []
-    for index, resume in enumerate(resumes, start=1):
-        digest = sha1(f"{resume.candidate_name}-{resume.title}-{index}".encode()).hexdigest()[:10]
-        records.append(
-            ResumeRecord(
-                id=f"uploaded_text_{digest}",
-                candidate_name=resume.candidate_name,
-                title=resume.title,
-                focus=resume.focus,
-                source_file="text-payload",
-                raw_text=resume.raw_text,
-            )
-        )
-    return records
 
 
 def _llm_analysis(
