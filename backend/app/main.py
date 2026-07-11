@@ -21,6 +21,7 @@ from .services.criteria import (
     load_default_criteria,
     validate_criteria_weights,
 )
+from .services.gemini_client import GeminiConfigurationError
 from .services.parser import SUPPORTED_EXTENSIONS, extract_text
 from .services.rag_engine import analysis_to_output, ranking_response_to_dict
 from .services.ranking import analyze_resume_records, text_resumes_to_records
@@ -36,7 +37,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    description="Systeme de classement de CV avec recherche RAG locale et scoring explicable.",
+    description="Systeme de classement de CV avec RAG Gemini, embeddings et ChromaDB.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -94,7 +95,7 @@ def reseed() -> dict[str, int]:
 def analyze_seed(request: AnalyzeSeedRequest) -> RankingResponse:
     sheet = request.criteria_sheet or load_default_criteria()
     validate_criteria_weights(sheet)
-    analyses = analyze_resume_records(sheet, list_resumes(), top_k=request.top_k)
+    analyses = _run_rag_analysis(sheet, list_resumes(), top_k=request.top_k)
     response = _build_response(sheet, analyses)
     analysis_id = save_analysis(
         criteria_id=sheet.id,
@@ -110,7 +111,7 @@ def analyze_seed(request: AnalyzeSeedRequest) -> RankingResponse:
 def analyze_text(request: AnalyzeTextRequest) -> RankingResponse:
     validate_criteria_weights(request.criteria_sheet)
     records = text_resumes_to_records(request.resumes)
-    analyses = analyze_resume_records(
+    analyses = _run_rag_analysis(
         request.criteria_sheet,
         records,
         top_k=request.top_k,
@@ -135,7 +136,46 @@ async def analyze_documents(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     records = [await _upload_to_resume_record(upload) for upload in files]
-    analyses = analyze_resume_records(sheet, records, top_k=top_k)
+    analyses = _run_rag_analysis(sheet, records, top_k=top_k)
+    response = _build_response(sheet, analyses)
+    analysis_id = save_analysis(
+        criteria_id=sheet.id,
+        criteria_title=sheet.title,
+        job_title=sheet.job_title,
+        result=ranking_response_to_dict(response),
+    )
+    response.analysis_id = analysis_id
+    return response
+
+
+@app.post(f"{settings.api_prefix}/analyze/database", response_model=RankingResponse)
+async def analyze_database(
+    criteria_file: Annotated[UploadFile, File(...)],
+    limit: Annotated[int, Form(ge=1, le=200)] = 20,
+    category: Annotated[str | None, Form()] = None,
+    top_k: Annotated[int, Form(ge=1, le=20)] = 5,
+) -> RankingResponse:
+    criteria_path = await _save_upload(criteria_file, prefix="criteria_")
+    criteria_text = extract_text(criteria_path)
+    try:
+        sheet = criteria_from_document_text(
+            criteria_text,
+            criteria_file.filename or criteria_path.name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    records = list_resumes(
+        limit=limit,
+        focus=category,
+        source_contains="Resume/Resume.csv",
+    )
+    if not records:
+        raise HTTPException(
+            status_code=400,
+            detail="Aucun CV Kaggle importe trouve. Lancez scripts/import_kaggle_archive.py.",
+        )
+    analyses = _run_rag_analysis(sheet, records, top_k=top_k)
     response = _build_response(sheet, analyses)
     analysis_id = save_analysis(
         criteria_id=sheet.id,
@@ -163,6 +203,19 @@ def _build_response(sheet: CriteriaSheetInput, analyses) -> RankingResponse:
         total_candidates=len(analyses),
         ranking=[analysis_to_output(item) for item in analyses],
     )
+
+
+def _run_rag_analysis(
+    sheet: CriteriaSheetInput,
+    records: list[ResumeRecord],
+    top_k: int,
+):
+    try:
+        return analyze_resume_records(sheet, records, top_k=top_k)
+    except GeminiConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 async def _upload_to_resume_record(upload: UploadFile) -> ResumeRecord:

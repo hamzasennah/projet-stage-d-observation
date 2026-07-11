@@ -1,30 +1,28 @@
 # Fiche de test de recrutement
 
-Fichier source : `data/criteria/data_ai_stage.json`
+Fichier source par defaut : `data/criteria/spm_data_analyst_packaging.json`
 
 ## Poste cible
 
-Stagiaire Data / IA pour construire un systeme de classement de CV avec RAG.
+Data analyst packaging tool (SPM).
+
+## Mission
+
+- Creer et ameliorer des dashboards SPM.
+- Utiliser Power BI, Excel et eventuellement Foundry.
+- Exploiter les donnees SPM / iTMS via exports Excel ou datalake Snowflake + Azure.
+- Piloter le workstream data : clarification des besoins metier, couverture par la solution IT, KPI/dashboard.
+- Produire la documentation associee.
 
 ## Criteres
 
 | Critere | Poids | Role |
 |---|---:|---|
-| Competences obligatoires | 40 | Python, ML, IA, RAG, embeddings, API, SQL, Git |
-| Experience et projets appliques | 25 | AgroShield, ObesoScan, pipeline, CNN, Streamlit, SHAP |
-| Competences souhaitees | 20 | FastAPI, React, TypeScript, JavaScript, Excel, Jira |
-| Coherence globale du profil | 15 | Formation, rigueur, langues, resolution de problemes |
+| Competences obligatoires | 40 | Power BI, Excel, Snowflake, KPI/dashboard, documentation, francais/anglais |
+| Experience BI/Data et projet | 25 | BI, dashboards, besoins metier, data workstream, datalake/Azure/SPM |
+| Competences souhaitees metier | 20 | Foundry, automotive supply chain, transport, packaging flow management, autonomie |
+| Coherence globale du profil | 15 | Communication, autonomie, documentation, gestion projet, logique data |
 
 ## Interpretation
 
-Un candidat bien classe doit avoir :
-
-- plusieurs preuves textuelles pour les competences obligatoires ;
-- des projets concrets relies a l'IA, la data ou le backend ;
-- une coherence entre formation, outils et objectif du poste ;
-- peu de competences critiques manquantes.
-
-## Modification
-
-La fiche peut etre modifiee depuis l'interface ou directement dans le JSON. La somme des poids doit rester egale a 100.
-
+Un candidat bien classe doit avoir plusieurs preuves textuelles sur Power BI/Excel, data analysis, dashboards, documentation et capacite de gestion projet. Les competences Snowflake, Azure, Foundry, supply chain, transport ou packaging ameliorent le classement si elles sont prouvees.

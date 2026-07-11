@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from uuid import uuid4
 
@@ -25,6 +26,16 @@ CRITERIA_CATALOG: dict[str, dict[str, object]] = {
             "git",
             "github",
             "base de donnees",
+            "data analyst",
+            "data analysis",
+            "power bi",
+            "excel",
+            "snowflake",
+            "dashboard",
+            "kpi",
+            "documentation",
+            "french",
+            "english",
             "chroma",
             "chromadb",
         ],
@@ -45,6 +56,13 @@ CRITERIA_CATALOG: dict[str, dict[str, object]] = {
             "ci/cd",
             "visualisation",
             "simulation",
+            "business needs",
+            "data workstream",
+            "datalake",
+            "azure",
+            "itms",
+            "spm",
+            "project management",
         ],
     },
     "Competences souhaitees": {
@@ -64,6 +82,14 @@ CRITERIA_CATALOG: dict[str, dict[str, object]] = {
             "tests",
             "frontend",
             "backend",
+            "foundry",
+            "supply chain",
+            "transport",
+            "packaging",
+            "automotive",
+            "leadership",
+            "self-driven",
+            "autonomy",
         ],
     },
     "Coherence globale du profil": {
@@ -80,6 +106,10 @@ CRITERIA_CATALOG: dict[str, dict[str, object]] = {
             "innovation",
             "francais",
             "anglais",
+            "fluent french",
+            "fluent english",
+            "autonomie",
+            "gestion de projet",
         ],
     },
 }
@@ -171,6 +201,16 @@ def criteria_query(sheet: CriteriaSheetInput) -> str:
 
 
 def _document_title(text: str, source_name: str) -> str:
+    exact_title = re.search(
+        r"(data analyst\s+packaging\s+tool\s*\(spm\))",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if exact_title:
+        return " ".join(exact_title.group(1).split())
+    data_title = re.search(r"(data analyst[^.]{0,90})", text, flags=re.IGNORECASE)
+    if data_title:
+        return " ".join(data_title.group(1).split())
     first_sentence = text.split(".")[0].strip()
     if 8 <= len(first_sentence) <= 90:
         return first_sentence

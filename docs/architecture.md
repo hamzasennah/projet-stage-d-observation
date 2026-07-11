@@ -14,37 +14,35 @@ flowchart TD
     D --> E["Extraction texte fiche"]
     D --> F["Extraction texte CV"]
     E --> G["Reference d'evaluation"]
-    F --> H["Chunks CV"]
-    H --> I["Vector store TF-IDF local"]
-    G --> I
-    I --> J["Passages pertinents"]
-    J --> K["Scoring par criteres ponderes"]
-    K --> L["Classement + preuves + points forts/faibles"]
-    L --> B
+    F --> H["Decoupage CV en chunks"]
+    H --> I["Gemini embeddings"]
+    I --> J["ChromaDB persistante"]
+    G --> K["Embedding requete fiche"]
+    K --> J
+    J --> L["Retrieval des passages pertinents"]
+    L --> M["Prompt Gemini avec preuves"]
+    M --> N["Score + resume + forces/faiblesses"]
+    N --> O["Classement final"]
+    O --> B
 ```
 
 ## Choix techniques
 
 - FastAPI : API claire, Swagger automatique, support upload multi-fichiers.
-- SQLite : stockage simple de la base provisoire et des analyses.
+- PyMuPDF + python-docx : extraction PDF/DOCX/TXT/MD.
+- Gemini embeddings : `text-embedding-004`, avec repli `gemini-embedding-001`.
+- ChromaDB : stockage vectoriel persistant des chunks.
+- Gemini generation : `gemini-flash-lite-latest`, avec repli `gemini-flash-latest`.
+- SQLite : stockage des CV importes et des analyses.
 - React + TypeScript : interface stable et typage des reponses.
-- TF-IDF local : vectorisation deterministe pour eviter les echecs lies aux cles API ou telechargements de modeles.
-- Structure modulaire : parser, chunker, vector store, criteria, ranking.
 
 ## Entrees principales
 
 - Fiche de test : document de reference d'evaluation.
 - CV candidats : documents a analyser et classer.
+- Archive Kaggle : source de base CV importable via `backend/scripts/import_kaggle_archive.py`.
+- Base importee : analysable via `POST /api/analyze/database` avec une fiche de poste.
 
-La base provisoire reste un mode de test. La version simple fonctionne sans base permanente : chaque analyse recoit une fiche et plusieurs CV.
+## Important
 
-## Remplacement futur
-
-Le module `TfidfVectorStore` peut etre remplace par ChromaDB + Sentence Transformers sans modifier le frontend. Les sorties attendues restent :
-
-- `match_score`
-- `summary`
-- `pros`
-- `cons`
-- `criteria_breakdown`
-- `evidence`
+Le systeme n'utilise plus TF-IDF pour le RAG applicatif. TF-IDF a ete remplace par ChromaDB + embeddings Gemini. Le mode de test automatise utilise uniquement des embeddings deterministes pour eviter la consommation API pendant `pytest`.

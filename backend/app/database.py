@@ -38,6 +38,7 @@ def _now() -> str:
 def init_db() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    settings.chroma_path.mkdir(parents=True, exist_ok=True)
     with connect() as con:
         con.executescript(SCHEMA)
 
@@ -81,14 +82,35 @@ def upsert_resume(record: ResumeRecord) -> None:
         )
 
 
-def list_resumes() -> list[ResumeRecord]:
+def list_resumes(
+    *,
+    limit: int | None = None,
+    focus: str | None = None,
+    source_contains: str | None = None,
+) -> list[ResumeRecord]:
+    conditions: list[str] = []
+    params: list[str | int] = []
+    if focus:
+        conditions.append("UPPER(focus) = UPPER(?)")
+        params.append(focus)
+    if source_contains:
+        conditions.append("source_file LIKE ?")
+        params.append(f"%{source_contains}%")
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    limit_sql = "LIMIT ?" if limit else ""
+    if limit:
+        params.append(limit)
+
     with connect() as con:
         rows = con.execute(
-            """
+            f"""
             SELECT id, candidate_name, title, focus, source_file, raw_text
             FROM resumes
+            {where}
             ORDER BY id
-            """
+            {limit_sql}
+            """,
+            tuple(params),
         ).fetchall()
     return [
         ResumeRecord(
@@ -141,4 +163,3 @@ def get_analysis(analysis_id: int) -> dict | None:
 
 def database_exists(path: Path | None = None) -> bool:
     return (path or settings.database_path).exists()
-

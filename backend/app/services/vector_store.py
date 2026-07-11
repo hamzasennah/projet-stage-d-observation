@@ -1,86 +1,97 @@
-from collections import Counter, defaultdict
-from math import log, sqrt
+from __future__ import annotations
 
-from ..models import Evidence
-from .tokenizer import tokenize
+import re
+
+from ..config import settings
+from ..models import Evidence, ResumeRecord
 
 
-class TfidfVectorStore:
-    """Small deterministic vector store used for local RAG retrieval.
+class ChromaResumeStore:
+    def __init__(self, collection_name: str | None = None) -> None:
+        try:
+            import chromadb
+        except ImportError as exc:
+            raise RuntimeError(
+                "ChromaDB est manquant. Installez backend/requirements.txt."
+            ) from exc
 
-    It keeps the project runnable without external model downloads while still
-    providing vectorized semantic-ish retrieval over CV chunks.
-    """
+        settings.chroma_path.mkdir(parents=True, exist_ok=True)
+        self._client = chromadb.PersistentClient(path=str(settings.chroma_path))
+        if collection_name is None:
+            suffix = "test" if settings.rag_test_mode else settings.gemini_embedding_model
+            collection_name = f"resume_chunks_{_safe_collection_suffix(suffix)}"
+        self._collection = self._client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"},
+        )
 
-    def __init__(self) -> None:
-        self._documents: dict[str, list[tuple[str, str]]] = {}
-        self._idf: dict[str, float] = {}
-        self._vectors: dict[str, list[tuple[str, dict[str, float]]]] = {}
+    def reset_analysis(self, analysis_id: str) -> None:
+        try:
+            self._collection.delete(where={"analysis_id": analysis_id})
+        except Exception:
+            pass
 
-    def index(self, resume_id: str, chunks: list[str]) -> None:
-        self._documents[resume_id] = [
-            (f"{resume_id}_chunk_{index + 1}", chunk)
-            for index, chunk in enumerate(chunks)
-        ]
-        self._rebuild()
+    def index_resume(
+        self,
+        analysis_id: str,
+        resume: ResumeRecord,
+        chunks: list[str],
+        embeddings: list[list[float]],
+    ) -> None:
+        if not chunks:
+            return
+        ids: list[str] = []
+        metadatas: list[dict[str, str | int]] = []
+        for index, _ in enumerate(chunks, start=1):
+            ids.append(f"{analysis_id}:{resume.id}:{index}")
+            metadatas.append(
+                {
+                    "analysis_id": analysis_id,
+                    "resume_id": resume.id,
+                    "analysis_resume_id": f"{analysis_id}:{resume.id}",
+                    "candidate_name": resume.candidate_name,
+                    "resume_title": resume.title,
+                    "source_file": resume.source_file,
+                    "chunk_index": index,
+                }
+            )
+        self._collection.upsert(
+            ids=ids,
+            documents=chunks,
+            embeddings=embeddings,
+            metadatas=metadatas,
+        )
 
-    def search(self, resume_id: str, query: str, top_k: int = 5) -> list[Evidence]:
-        if resume_id not in self._vectors:
-            return []
-        query_vector = self._vectorize(query)
-        scored: list[Evidence] = []
-        chunks_by_id = dict(self._documents.get(resume_id, []))
-        for chunk_id, vector in self._vectors[resume_id]:
-            similarity = _cosine(query_vector, vector)
-            scored.append(
+    def search_resume(
+        self,
+        analysis_id: str,
+        resume_id: str,
+        query_embedding: list[float],
+        top_k: int,
+    ) -> list[Evidence]:
+        results = self._collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k,
+            where={"analysis_resume_id": f"{analysis_id}:{resume_id}"},
+            include=["documents", "metadatas", "distances"],
+        )
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
+        evidence: list[Evidence] = []
+        for document, metadata, distance in zip(documents, metadatas, distances):
+            chunk_index = metadata.get("chunk_index", "?") if metadata else "?"
+            title = metadata.get("resume_title", resume_id) if metadata else resume_id
+            similarity = max(0.0, 1.0 - float(distance))
+            evidence.append(
                 Evidence(
-                    source=chunk_id,
-                    text=chunks_by_id.get(chunk_id, ""),
+                    source=f"{title} - chunk {chunk_index}",
+                    text=document,
                     similarity=round(similarity, 4),
                 )
             )
-        scored.sort(key=lambda item: item.similarity, reverse=True)
-        return scored[:top_k]
-
-    def _rebuild(self) -> None:
-        docs = [chunk for chunks in self._documents.values() for _, chunk in chunks]
-        doc_count = max(len(docs), 1)
-        document_frequency: defaultdict[str, int] = defaultdict(int)
-        for chunk in docs:
-            for token in set(tokenize(chunk)):
-                document_frequency[token] += 1
-        self._idf = {
-            token: log((1 + doc_count) / (1 + frequency)) + 1
-            for token, frequency in document_frequency.items()
-        }
-        self._vectors = {
-            resume_id: [
-                (chunk_id, self._vectorize(chunk))
-                for chunk_id, chunk in chunks
-            ]
-            for resume_id, chunks in self._documents.items()
-        }
-
-    def _vectorize(self, text: str) -> dict[str, float]:
-        tokens = tokenize(text)
-        if not tokens:
-            return {}
-        counts = Counter(tokens)
-        total = sum(counts.values())
-        return {
-            token: (count / total) * self._idf.get(token, 1.0)
-            for token, count in counts.items()
-        }
+        return evidence
 
 
-def _cosine(left: dict[str, float], right: dict[str, float]) -> float:
-    if not left or not right:
-        return 0.0
-    common = set(left).intersection(right)
-    dot = sum(left[token] * right[token] for token in common)
-    left_norm = sqrt(sum(value * value for value in left.values()))
-    right_norm = sqrt(sum(value * value for value in right.values()))
-    if left_norm == 0 or right_norm == 0:
-        return 0.0
-    return dot / (left_norm * right_norm)
-
+def _safe_collection_suffix(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]+", "_", value).strip("_")[:40] or "default"

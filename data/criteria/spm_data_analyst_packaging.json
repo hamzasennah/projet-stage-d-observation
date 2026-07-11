@@ -1,0 +1,104 @@
+{
+  "id": "spm-data-analyst-packaging-2026",
+  "title": "Fiche de test - Data Analyst Packaging Tool SPM",
+  "job_title": "Data Analyst Packaging Tool (SPM)",
+  "job_description": "Mission BI/Data project management for SPM project: create and enhance dashboard for SPM project using Power BI, Excel and eventually Foundry. Data available in dedicated business application SPM / iTMS via Excel extract or in datalake Snowflake + Azure. Lead data workstream: clarify business needs and ensure they are covered by IT solution in terms of data and KPI/dashboard. Provide associated documentation.",
+  "required_skills": [
+    "Power BI",
+    "Excel",
+    "Snowflake",
+    "Data analysis",
+    "KPI",
+    "Dashboard",
+    "Documentation",
+    "French",
+    "English"
+  ],
+  "preferred_skills": [
+    "Foundry",
+    "Azure",
+    "Datalake",
+    "Project management",
+    "Automotive supply chain",
+    "Transport",
+    "Packaging flow management",
+    "Leadership",
+    "Autonomy"
+  ],
+  "criteria": [
+    {
+      "label": "Competences obligatoires",
+      "weight": 40,
+      "description": "Mesure la presence des outils et competences indispensables de la fiche de poste SPM.",
+      "keywords": [
+        "power bi",
+        "excel",
+        "snowflake",
+        "data analysis",
+        "kpi",
+        "dashboard",
+        "documentation",
+        "french",
+        "english"
+      ],
+      "minimum_evidence": 3
+    },
+    {
+      "label": "Experience BI/Data et projet",
+      "weight": 25,
+      "description": "Valorise les experiences de BI, dashboards, clarification de besoins et pilotage de workstream data.",
+      "keywords": [
+        "business needs",
+        "project management",
+        "data workstream",
+        "power bi",
+        "dashboard",
+        "datalake",
+        "azure",
+        "itms",
+        "spm"
+      ],
+      "minimum_evidence": 2
+    },
+    {
+      "label": "Competences souhaitees metier",
+      "weight": 20,
+      "description": "Mesure l'alignement avec Foundry, supply chain, transport, automotive et packaging flow management.",
+      "keywords": [
+        "foundry",
+        "supply chain",
+        "transport",
+        "packaging",
+        "automotive",
+        "flow management",
+        "leadership",
+        "autonomy",
+        "self-driven"
+      ],
+      "minimum_evidence": 2
+    },
+    {
+      "label": "Coherence globale du profil",
+      "weight": 15,
+      "description": "Evalue la coherence generale, l'autonomie, la communication bilingue et la capacite de documentation.",
+      "keywords": [
+        "project management",
+        "autonomy",
+        "leadership",
+        "documentation",
+        "french",
+        "english",
+        "data",
+        "business",
+        "kpi"
+      ],
+      "minimum_evidence": 2
+    }
+  ],
+  "red_flags": [
+    "aucune experience data",
+    "pas d'excel",
+    "pas de power bi",
+    "pas de documentation"
+  ]
+}
