@@ -29,14 +29,22 @@ def analyze_resume_records(
     query = criteria_query(sheet)
     query_embedding = gemini.embed_query(query)
     analyses: list[CandidateAnalysis] = []
+    prepared: list[tuple[ResumeRecord, list[str], int]] = []
+    all_chunks: list[str] = []
 
     for resume in resumes:
-        chunks = split_text(resume.raw_text)
+        chunks = split_text(resume.raw_text, chunk_size=1800, overlap=120)
         if not chunks:
             analyses.append(_empty_analysis(sheet, resume))
             continue
+        start_index = len(all_chunks)
+        all_chunks.extend(chunks)
+        prepared.append((resume, chunks, start_index))
 
-        chunk_embeddings = gemini.embed_documents(chunks)
+    all_embeddings = gemini.embed_documents(all_chunks) if all_chunks else []
+
+    for resume, chunks, start_index in prepared:
+        chunk_embeddings = all_embeddings[start_index : start_index + len(chunks)]
         store.index_resume(run_id, resume, chunks, chunk_embeddings)
         retrieved = store.search_resume(
             run_id=run_id,

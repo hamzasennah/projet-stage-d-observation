@@ -17,6 +17,7 @@ class Settings:
     data_dir: Path = project_root / "data"
     upload_dir: Path = data_dir / "uploads"
     chroma_path: Path = data_dir / "chroma"
+    embedding_cache_path: Path = data_dir / "cache" / "gemini_embeddings.json"
     default_criteria_path: Path = data_dir / "criteria" / "spm_data_analyst_packaging.json"
     allowed_origins: tuple[str, ...] = (
         "http://localhost:5173",

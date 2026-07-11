@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RefreshCcw } from "lucide-react";
-import { analyzeDocuments } from "./api";
+import { analyzeDocuments, apiErrorMessage } from "./api";
 import { DocumentAnalyzer } from "./components/DocumentAnalyzer";
 import { RankingTable } from "./components/RankingTable";
 import type { CandidateRanking } from "./types";
@@ -17,12 +17,14 @@ function App() {
 
   async function runDocumentAnalysis(criteriaFile: File, files: File[]) {
     setBusy(true);
+    setRanking([]);
+    setStatus(`Analyse en cours: ${files.length} CV`);
     try {
       const response = await analyzeDocuments(criteriaFile, files);
       setRanking(response.ranking);
-      setStatus("Classement termine");
+      setStatus(`Classement termine: ${response.total_candidates} CV`);
     } catch (error) {
-      setStatus(messageFromError(error));
+      setStatus(apiErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -50,11 +52,6 @@ function App() {
       </div>
     </main>
   );
-}
-
-function messageFromError(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Erreur inattendue";
 }
 
 export default App;

@@ -20,3 +20,13 @@ export async function analyzeDocuments(
   );
   return response.data;
 }
+
+export function apiErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+    return error.message;
+  }
+  if (error instanceof Error) return error.message;
+  return "Erreur inattendue";
+}
