@@ -14,6 +14,7 @@
 - `pytest` : tests backend en mode `RAG_TEST_MODE=1`.
 - `python -m compileall app` : compilation Python.
 - `pnpm run build` : build frontend.
+- Test backend avec 12 CV dans une seule requete : aucune limite applicative fixe sur le nombre de CV.
 - Analyse reelle avec `fiche de poste.pdf` + plusieurs CV PDF : endpoint `POST /api/analyze/documents` doit retourner `200`.
 
 ## Controle qualite
@@ -36,4 +37,3 @@ python -m compileall app
 cd frontend
 pnpm run build
 ```
-

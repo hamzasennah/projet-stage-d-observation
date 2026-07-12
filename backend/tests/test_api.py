@@ -34,3 +34,32 @@ def test_analyze_documents_endpoint() -> None:
     assert payload["total_candidates"] == 2
     assert payload["ranking"][0]["resume_title"] == "CV importe - cv_data.txt"
     assert payload["ranking"][0]["match_score"] > payload["ranking"][1]["match_score"]
+
+
+def test_analyze_documents_accepts_larger_cv_batches() -> None:
+    criteria = (
+        "Fiche de poste Data Analyst. Competences demandees: Power BI, Excel, "
+        "SQL, dashboards, documentation, project management et anglais."
+    )
+    files = [
+        ("criteria_file", ("fiche_test.txt", criteria.encode("utf-8"), "text/plain")),
+    ]
+    for index in range(12):
+        cv_text = (
+            f"Candidat {index}. Data analyst avec Power BI, Excel, SQL, "
+            "dashboards KPI, documentation et gestion projet."
+        )
+        files.append(
+            (
+                "files",
+                (f"cv_batch_{index:02d}.txt", cv_text.encode("utf-8"), "text/plain"),
+            )
+        )
+
+    with TestClient(app) as client:
+        response = client.post("/api/analyze/documents", files=files, data={"top_k": "2"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_candidates"] == 12
+    assert len(payload["ranking"]) == 12

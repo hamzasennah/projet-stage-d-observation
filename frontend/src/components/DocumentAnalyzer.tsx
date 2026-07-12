@@ -1,8 +1,6 @@
 import { FileCheck2, Files, Play } from "lucide-react";
 import { useState } from "react";
 
-const MAX_FILES_PER_RUN = 5;
-
 type Props = {
   disabled: boolean;
   onAnalyze: (criteriaFile: File, files: File[]) => void;
@@ -11,8 +9,7 @@ type Props = {
 export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
   const [criteriaFile, setCriteriaFile] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const hasTooManyFiles = files.length > MAX_FILES_PER_RUN;
-  const canAnalyze = Boolean(criteriaFile && files.length && !hasTooManyFiles);
+  const canAnalyze = Boolean(criteriaFile && files.length);
 
   return (
     <section className="panel document-panel">
@@ -50,13 +47,11 @@ export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
           onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
         />
         <small>
-          {files.length ? files.map((file) => file.name).join(", ") : "Selectionner 1 a 5 CV PDF"}
+          {files.length ? files.map((file) => file.name).join(", ") : "Selectionner un ou plusieurs CV PDF"}
         </small>
-        {hasTooManyFiles && (
-          <small className="input-warning">
-            Limite de test: {MAX_FILES_PER_RUN} CV maximum par analyse avec le quota Gemini gratuit.
-          </small>
-        )}
+        <small className="input-hint">
+          Aucun plafond applicatif sur le nombre de CV; le temps d'analyse depend du volume et du quota Gemini.
+        </small>
       </label>
 
       <button

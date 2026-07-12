@@ -104,7 +104,7 @@ python tools/generate_test_cv_pdfs.py "C:\Users\pc\Desktop\archive.zip"
 
 Ces PDF sont destines a etre uploades manuellement dans l'interface, avec la fiche de poste PDF.
 
-Avec le quota gratuit Gemini, il est conseille de tester par lots de 5 a 10 CV. Le backend applique des retries sur les erreurs `429` et garde un cache local des embeddings dans `data/cache/`, ignore par Git, pour eviter de recalculer les memes vecteurs aux essais suivants.
+L'application n'impose pas de limite fixe sur le nombre de CV uploades. Les seules limites pratiques viennent du temps de traitement, de la taille des fichiers et du quota Gemini disponible. Le backend applique des retries sur les erreurs `429` et garde un cache local des embeddings dans `data/cache/`, ignore par Git, pour eviter de recalculer les memes vecteurs aux essais suivants.
 
 ## Tests
 
