@@ -15,12 +15,12 @@ flowchart TD
     D --> F["Extraction texte CV"]
     E --> G["Reference d'evaluation"]
     F --> H["Decoupage des CV en chunks"]
-    H --> I["Embeddings Gemini"]
+    H --> I["Embeddings Qwen via Ollama"]
     I --> J["ChromaDB: index vectoriel de l'analyse"]
     G --> K["Embedding requete fiche"]
     K --> J
     J --> L["Retrieval des passages pertinents"]
-    L --> M["Prompt Gemini avec preuves"]
+    L --> M["Prompt Qwen avec preuves"]
     M --> N["Score + resume + forces/faiblesses"]
     N --> O["Classement final"]
     O --> B
@@ -30,9 +30,9 @@ flowchart TD
 
 - FastAPI : API claire, Swagger automatique, support upload multi-fichiers.
 - PyMuPDF : extraction du texte des PDF.
-- Gemini embeddings : `text-embedding-004`, avec repli `gemini-embedding-001`.
+- Ollama embeddings : `qwen3-embedding:0.6b`.
 - ChromaDB : base vectorielle des chunks de CV uploades.
-- Gemini generation : `gemini-flash-lite-latest`, avec repli `gemini-flash-latest`.
+- Ollama generation : `qwen2.5:7b`.
 - React + TypeScript : interface stable et typage des reponses.
 
 ## Role des donnees
@@ -45,5 +45,4 @@ Il n'y a pas de base SQLite dans l'architecture applicative. Les CV ne sont pas 
 
 ## Important
 
-Le systeme n'utilise pas TF-IDF pour le RAG applicatif. Le retrieval passe par ChromaDB + embeddings Gemini. Le mode de test automatise utilise uniquement des embeddings deterministes pour eviter la consommation API pendant `pytest`.
-
+Le systeme n'utilise pas TF-IDF pour le RAG applicatif. Le retrieval passe par ChromaDB + embeddings Qwen via Ollama. Le mode de test automatise utilise uniquement des embeddings deterministes pour ne pas dependre d'un serveur Ollama lance pendant `pytest`.

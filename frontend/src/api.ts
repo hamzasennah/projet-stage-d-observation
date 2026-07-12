@@ -24,9 +24,6 @@ export async function analyzeDocuments(
 export function apiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail;
-    if (error.response?.status === 429) {
-      return "Quota Gemini atteint. Attendez le reset du quota quotidien ou utilisez une cle avec plus de quota.";
-    }
     if (typeof detail === "string" && detail.trim()) return detail;
     return error.message;
   }

@@ -50,7 +50,7 @@ export function DocumentAnalyzer({ disabled, onAnalyze }: Props) {
           {files.length ? files.map((file) => file.name).join(", ") : "Selectionner un ou plusieurs CV PDF"}
         </small>
         <small className="input-hint">
-          Aucun plafond applicatif sur le nombre de CV; le temps d'analyse depend du volume et du quota Gemini.
+          Aucun plafond applicatif sur le nombre de CV; le temps d'analyse depend du volume et de la machine Ollama.
         </small>
       </label>
 

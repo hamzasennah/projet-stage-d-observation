@@ -63,3 +63,34 @@ def test_analyze_documents_accepts_larger_cv_batches() -> None:
     payload = response.json()
     assert payload["total_candidates"] == 12
     assert len(payload["ranking"]) == 12
+
+
+def test_analyze_documents_reports_missing_ollama(monkeypatch) -> None:
+    monkeypatch.delenv("RAG_TEST_MODE", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://127.0.0.1:9")
+
+    files = [
+        (
+            "criteria_file",
+            (
+                "fiche_test.txt",
+                b"Fiche de poste Data Analyst. Competences: Python, SQL, Power BI.",
+                "text/plain",
+            ),
+        ),
+        (
+            "files",
+            (
+                "cv_data.txt",
+                b"Candidat Data Analyst avec Python, SQL et Power BI.",
+                "text/plain",
+            ),
+        ),
+    ]
+
+    with TestClient(app) as client:
+        response = client.post("/api/analyze/documents", files=files, data={"top_k": "2"})
+
+    assert response.status_code == 503
+    assert "Ollama" in response.json()["detail"]

@@ -14,9 +14,12 @@ from .schemas import (
 from .services.criteria import (
     criteria_from_document_text,
     load_default_criteria,
-    validate_criteria_weights,
 )
-from .services.gemini_client import GeminiConfigurationError, GeminiQuotaError
+from .services.ollama_client import (
+    OllamaConfigurationError,
+    OllamaConnectionError,
+    OllamaModelError,
+)
 from .services.parser import SUPPORTED_EXTENSIONS, extract_text
 from .services.rag_engine import analysis_to_output
 from .services.ranking import analyze_resume_records
@@ -24,7 +27,7 @@ from .services.ranking import analyze_resume_records
 
 app = FastAPI(
     title=settings.app_name,
-    description="Systeme de classement de CV avec RAG Gemini, embeddings et ChromaDB.",
+    description="Systeme de classement de CV avec RAG Ollama/Qwen, embeddings et ChromaDB.",
     version="1.0.0",
 )
 
@@ -94,9 +97,11 @@ def _run_rag_analysis(
 ):
     try:
         return analyze_resume_records(sheet, records, top_k=top_k)
-    except GeminiQuotaError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except GeminiConfigurationError as exc:
+    except OllamaConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except OllamaConnectionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except OllamaModelError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

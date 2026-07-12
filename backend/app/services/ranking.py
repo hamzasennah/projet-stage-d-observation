@@ -7,8 +7,8 @@ from ..models import CandidateAnalysis, CriterionResult, Evidence, ResumeRecord
 from ..schemas import CriteriaSheetInput
 from .chunker import split_text
 from .criteria import criteria_query, validate_criteria_weights
-from .gemini_client import get_gemini_client
-from .tokenizer import keyword_in_text, matched_keywords, normalize_text
+from .ollama_client import get_ollama_client
+from .tokenizer import matched_keywords, normalize_text
 from .vector_store import ChromaResumeStore
 
 
@@ -22,12 +22,12 @@ def analyze_resume_records(
         return []
 
     run_id = f"run_{uuid4().hex}"
-    gemini = get_gemini_client()
+    llm = get_ollama_client()
     store = ChromaResumeStore()
     store.reset_run(run_id)
 
     query = criteria_query(sheet)
-    query_embedding = gemini.embed_query(query)
+    query_embedding = llm.embed_query(query)
     analyses: list[CandidateAnalysis] = []
     prepared: list[tuple[ResumeRecord, list[str], int]] = []
     all_chunks: list[str] = []
@@ -41,7 +41,7 @@ def analyze_resume_records(
         all_chunks.extend(chunks)
         prepared.append((resume, chunks, start_index))
 
-    all_embeddings = gemini.embed_documents(all_chunks) if all_chunks else []
+    all_embeddings = llm.embed_documents(all_chunks) if all_chunks else []
 
     for resume, chunks, start_index in prepared:
         chunk_embeddings = all_embeddings[start_index : start_index + len(chunks)]
@@ -55,7 +55,7 @@ def analyze_resume_records(
         if settings.rag_test_mode:
             analyses.append(_keyword_analysis(sheet, resume, retrieved))
         else:
-            analyses.append(_llm_analysis(sheet, resume, retrieved, gemini))
+            analyses.append(_llm_analysis(sheet, resume, retrieved, llm))
 
     analyses.sort(key=lambda item: item.match_score, reverse=True)
     return analyses
@@ -65,9 +65,9 @@ def _llm_analysis(
     sheet: CriteriaSheetInput,
     resume: ResumeRecord,
     evidence: list[Evidence],
-    gemini,
+    llm,
 ) -> CandidateAnalysis:
-    payload = gemini.generate_json(_analysis_prompt(sheet, resume, evidence))
+    payload = llm.generate_json(_analysis_prompt(sheet, resume, evidence))
     breakdown = _criteria_from_payload(sheet, payload, evidence)
     score = _number(payload.get("match_score"), default=sum(item.score for item in breakdown))
 
@@ -76,7 +76,7 @@ def _llm_analysis(
         candidate_name=str(payload.get("candidate_name") or resume.candidate_name),
         resume_title=resume.title,
         match_score=_clamp(score, 0, 100),
-        summary=str(payload.get("summary") or "Analyse Gemini sans resume exploitable."),
+        summary=str(payload.get("summary") or "Analyse LLM sans resume exploitable."),
         pros=_string_list(payload.get("pros"))[:5],
         cons=_string_list(payload.get("cons"))[:5],
         criteria_breakdown=breakdown,

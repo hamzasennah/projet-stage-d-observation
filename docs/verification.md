@@ -5,8 +5,8 @@
 1. Le backend demarre avec `uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload`.
 2. `GET /api/health` retourne `{"status": "ok"}`.
 3. `POST /api/analyze/documents` accepte une fiche de poste PDF et plusieurs CV PDF.
-4. Le pipeline cree des embeddings Gemini et indexe les chunks des CV dans ChromaDB.
-5. Gemini genere un JSON avec score, resume, points forts, points faibles et detail par critere.
+4. Le pipeline cree des embeddings Qwen via Ollama et indexe les chunks des CV dans ChromaDB.
+5. Qwen genere un JSON avec score, resume, points forts, points faibles et detail par critere.
 6. Chaque candidat contient des preuves textuelles issues du retrieval ChromaDB.
 
 ## Validations a executer
@@ -19,9 +19,9 @@
 
 ## Controle qualite
 
-- La cle API est chargee depuis `.env`, ignore par Git.
+- La configuration Ollama est chargee depuis `.env`, ignore par Git.
 - Les fichiers generes localement (`data/chroma`, uploads, `node_modules`, logs) sont ignores par Git.
-- L'application normale ne retombe pas silencieusement sur un faux RAG si Gemini est absent.
+- L'application normale signale explicitement si Ollama n'est pas joignable ou si les modeles ne sont pas telecharges.
 - Les uploads refusent les formats non supportes.
 - Aucune base SQLite, aucun import Kaggle et aucun jeu de CV seed ne sont requis dans le flux principal.
 

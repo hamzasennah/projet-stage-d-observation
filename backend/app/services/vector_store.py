@@ -18,7 +18,7 @@ class ChromaResumeStore:
         settings.chroma_path.mkdir(parents=True, exist_ok=True)
         self._client = chromadb.PersistentClient(path=str(settings.chroma_path))
         if collection_name is None:
-            suffix = "test" if settings.rag_test_mode else settings.gemini_embedding_model
+            suffix = "test" if settings.rag_test_mode else settings.ollama_embedding_model
             collection_name = f"resume_chunks_{_safe_collection_suffix(suffix)}"
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
@@ -40,6 +40,10 @@ class ChromaResumeStore:
     ) -> None:
         if not chunks:
             return
+        if len(chunks) != len(embeddings):
+            raise RuntimeError(
+                "Indexation ChromaDB impossible: nombre de chunks different du nombre de vecteurs."
+            )
         ids: list[str] = []
         metadatas: list[dict[str, str | int]] = []
         for index, _ in enumerate(chunks, start=1):
