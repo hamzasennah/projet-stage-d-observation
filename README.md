@@ -1,52 +1,75 @@
-# AI-Powered Resume Ranking System avec vrai RAG
+# Resume Ranking RAG
 
-Projet PFE / stage d'observation : application de classement de CV par rapport a une fiche de poste, avec embeddings Gemini, base vectorielle ChromaDB, generation Gemini et interface React.
+Application PFE de classement de CV par rapport a une fiche de poste. Le flux reel du code actuel est simple : l'utilisateur importe une fiche de poste et des CV, le backend extrait le texte, construit un index vectoriel ChromaDB avec des embeddings Gemini, recupere les passages pertinents, puis Gemini produit le classement.
 
-## Ce qui est livre
+## Fonctionnalites actuelles
 
-- Backend FastAPI avec parsing PDF pour la fiche de poste et les CV.
-- Pipeline RAG reel : extraction, chunks, embeddings Gemini, stockage vectoriel ChromaDB, retrieval par similarite.
-- Analyse LLM Gemini : score, resume, points forts, points faibles, detail par critere et preuves.
-- Frontend React/TypeScript pour importer une fiche de poste, importer des CV PDF et afficher le classement.
-- Tests backend avec `pytest` en mode `RAG_TEST_MODE=1` sans appel API externe.
+- Interface React pour importer une fiche de poste PDF et un ou plusieurs CV PDF.
+- API FastAPI avec endpoint principal `POST /api/analyze/documents`.
+- Extraction de texte via PyMuPDF pour les PDF. Le backend sait aussi extraire DOCX/TXT/MD, mais l'interface actuelle limite la selection aux PDF.
+- Decoupage des CV en chunks, embeddings Gemini et stockage/recherche dans ChromaDB.
+- Scoring LLM Gemini avec resume, points forts, points faibles, detail par critere et preuves RAG.
+- Cache local des embeddings dans `data/cache/` pour eviter de recalculer les memes vecteurs.
+- Tests backend en mode `RAG_TEST_MODE=1`, sans appel API Gemini.
+- Script optionnel de generation de CV PDF anonymises pour les tests.
 
-Il n'y a plus de base SQLite ni de base Kaggle dans le flux applicatif. Les CV importes manuellement deviennent la base documentaire temporaire de l'analyse : ils sont decoupes, vectorises et indexes dans ChromaDB pour le RAG.
+## Ce qui n'existe pas dans l'application actuelle
+
+- Pas de base SQLite applicative.
+- Pas de base permanente de CV.
+- Pas d'import Kaggle dans le backend de production.
+- Pas d'historique d'analyses sauvegarde.
+- Pas d'endpoint `/api/analyze/database`, `/api/analyze/seed` ou `/api/resumes/seed`.
+- Pas de limite applicative fixe sur le nombre de CV uploades. Les limites pratiques viennent du temps de traitement, de la taille des fichiers et du quota Gemini.
 
 ## Modeles Gemini
 
-Configuration actuelle :
+Valeurs par defaut dans `backend/app/config.py` :
 
 - Generation : `gemini-flash-lite-latest`
 - Repli generation : `gemini-flash-latest`
 - Embeddings : `text-embedding-004`
 - Repli embeddings : `gemini-embedding-001`
 
-Note : `gemini-2.5-flash-lite` et `gemini-2.5-flash` peuvent apparaitre dans certaines recommandations, mais cette cle/projet renvoie une erreur `NOT_FOUND` pour ces modeles. Les alias `gemini-flash-lite-latest` et `gemini-flash-latest` ont ete testes avec succes.
+Si Gemini retourne `429`, l'application renvoie un message de quota. Le code applique quelques retries et garde un cache local, mais il ne peut pas contourner un quota quotidien epuise.
 
-## Structure
+## Structure utile
 
 ```text
 backend/
   app/
-    main.py
+    main.py              # endpoints FastAPI
+    config.py            # configuration et variables d'environnement
+    schemas.py           # schemas de requete/reponse
+    models.py            # modeles internes
     services/
-      gemini_client.py
-      vector_store.py
-      ranking.py
-      parser.py
-      criteria.py
-data/
-  criteria/spm_data_analyst_packaging.json
-  chroma/              # genere localement, ignore par Git
-  uploads/             # genere localement, ignore par Git
+      parser.py          # extraction PDF/DOCX/TXT/MD
+      criteria.py        # construction de la fiche de criteres
+      chunker.py         # decoupage des textes
+      gemini_client.py   # embeddings + generation Gemini + cache
+      vector_store.py    # ChromaDB
+      ranking.py         # orchestration RAG + scoring
+      rag_engine.py      # conversion des resultats API
+  tests/
 frontend/
   src/
-docs/
+    App.tsx
+    api.ts
+    components/
+      DocumentAnalyzer.tsx
+      RankingTable.tsx
+data/
+  criteria/spm_data_analyst_packaging.json
+  uploads/               # genere localement, ignore par Git
+  chroma/                # genere localement, ignore par Git
+  cache/                 # genere localement, ignore par Git
+tools/
+  generate_test_cv_pdfs.py
 ```
 
 ## Configuration locale
 
-Creer un fichier `.env` a la racine du projet, jamais commite :
+Creer un fichier `.env` a la racine du projet. Il est ignore par Git.
 
 ```env
 LLM_PROVIDER=gemini
@@ -57,17 +80,6 @@ GEMINI_EMBEDDING_MODEL=text-embedding-004
 GEMINI_EMBEDDING_FALLBACK_MODEL=gemini-embedding-001
 VITE_API_URL=http://127.0.0.1:8001
 ```
-
-## Flux principal
-
-1. Importer une fiche de poste PDF contenant les criteres du poste.
-2. Importer un ou plusieurs CV PDF.
-3. Cliquer sur `Analyser et classer`.
-4. Le backend extrait les textes, decoupe les CV en chunks, cree les embeddings Gemini et indexe les chunks dans ChromaDB.
-5. Le moteur RAG recupere les passages les plus pertinents de chaque CV par rapport a la fiche de poste.
-6. Gemini produit l'analyse finale : score, resume, points forts, points faibles, detail par critere et preuves.
-
-La fiche de poste n'est pas une base de donnees. Elle sert de reference d'evaluation. Les CV uploades sont les documents analyses et forment l'index vectoriel ChromaDB de l'analyse courante.
 
 ## Lancer le backend
 
@@ -93,20 +105,44 @@ pnpm run dev
 
 Interface : [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
+## Flux utilisateur
+
+1. Importer une fiche de poste PDF.
+2. Importer un ou plusieurs CV PDF.
+3. Cliquer sur `Analyser et classer`.
+4. Lire le classement : score, resume, points forts, points faibles, detail des criteres et preuves.
+
+La fiche de poste sert de reference d'evaluation. Les CV uploades deviennent la base documentaire temporaire de l'analyse : ils sont decoupes, vectorises et indexes dans ChromaDB pour le run courant.
+
+## Endpoints actuels
+
+- `GET /` : statut simple de l'API.
+- `GET /api/health` : controle de sante.
+- `GET /api/criteria/default` : fiche de criteres JSON par defaut.
+- `POST /api/analyze/documents` : analyse une fiche de poste et des CV uploades.
+
 ## Generer des CV PDF de test
 
-Le script suivant cree 20 CV PDF anonymises a partir de l'archive Kaggle locale. Les fichiers sont generes dans `output/pdf/test_cvs/`, ignore par Git.
+Le script `tools/generate_test_cv_pdfs.py` est un outil local de test. Il lit `archive.zip`, anonymise des lignes du dataset et genere 20 PDF dans `output/pdf/test_cvs/`. Ces PDF ne sont pas versionnes.
+
+Installer la dependance du script si elle n'est pas deja presente :
+
+```powershell
+python -m pip install reportlab
+```
+
+Generer les PDF :
 
 ```powershell
 cd "C:\Users\pc\Documents\travail demander pour mon stage"
 python tools/generate_test_cv_pdfs.py "C:\Users\pc\Desktop\archive.zip"
 ```
 
-Ces PDF sont destines a etre uploades manuellement dans l'interface, avec la fiche de poste PDF.
-
-L'application n'impose pas de limite fixe sur le nombre de CV uploades. Les seules limites pratiques viennent du temps de traitement, de la taille des fichiers et du quota Gemini disponible. Le backend applique des retries sur les erreurs `429` et garde un cache local des embeddings dans `data/cache/`, ignore par Git, pour eviter de recalculer les memes vecteurs aux essais suivants.
+Ces fichiers servent uniquement de CV de test a uploader manuellement dans l'interface.
 
 ## Tests
+
+Backend :
 
 ```powershell
 cd "C:\Users\pc\Documents\travail demander pour mon stage\backend"
@@ -114,13 +150,12 @@ pytest
 python -m compileall app
 ```
 
+Frontend :
+
 ```powershell
 cd "C:\Users\pc\Documents\travail demander pour mon stage\frontend"
 pnpm run build
 ```
 
-Les tests activent `RAG_TEST_MODE=1` dans `backend/tests/conftest.py` pour valider ChromaDB sans consommer l'API Gemini.
+Les tests activent `RAG_TEST_MODE=1` dans `backend/tests/conftest.py`. Dans ce mode, les embeddings sont deterministes et aucun appel Gemini n'est consomme.
 
-## Endpoint principal
-
-- `POST /api/analyze/documents` : analyse une fiche de poste importee et un ou plusieurs CV PDF importes.
