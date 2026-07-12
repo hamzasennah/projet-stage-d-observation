@@ -27,7 +27,7 @@ export function RankingTable({ ranking }: Props) {
           <details className="ranking-row" key={candidate.candidate_id} open={index === 0}>
             <summary>
               <span className="rank">{index + 1}</span>
-              <span>
+              <span className="candidate-cell">
                 <strong>{candidate.resume_title}</strong>
                 <small>{candidate.candidate_name}</small>
               </span>
@@ -92,4 +92,3 @@ export function RankingTable({ ranking }: Props) {
     </section>
   );
 }
-

@@ -288,7 +288,7 @@ textarea:focus {
 .ranking-head,
 .ranking-row summary {
   display: grid;
-  grid-template-columns: 64px minmax(180px, 1fr) minmax(170px, 220px) 80px;
+  grid-template-columns: 64px minmax(0, 1fr) 220px 80px;
   gap: 12px;
   align-items: center;
 }
@@ -321,6 +321,7 @@ textarea:focus {
 }
 
 .rank {
+  flex: 0 0 auto;
   width: 38px;
   height: 38px;
   display: grid;
@@ -331,9 +332,18 @@ textarea:focus {
   font-weight: 900;
 }
 
+.candidate-cell {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .ranking-row strong,
 .ranking-row small {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ranking-row small {
@@ -346,11 +356,14 @@ textarea:focus {
   grid-template-columns: 44px 1fr;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  width: 100%;
 }
 
 .score-cell b {
   font-size: 1.15rem;
   color: #7a4b00;
+  text-align: right;
 }
 
 .score-bar {
@@ -371,6 +384,8 @@ textarea:focus {
   display: flex;
   color: #31544c;
   gap: 8px;
+  justify-content: center;
+  min-width: 0;
 }
 
 .ranking-details {
