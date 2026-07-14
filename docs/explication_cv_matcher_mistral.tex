@@ -1,0 +1,940 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{titlesec}
+
+\geometry{margin=2.2cm}
+\setlist[itemize]{topsep=3pt,itemsep=3pt}
+\setlist[enumerate]{topsep=3pt,itemsep=3pt}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{220,220,220}
+\definecolor{commentgreen}{RGB}{55,120,65}
+\definecolor{keywordblue}{RGB}{30,70,160}
+\definecolor{stringred}{RGB}{150,55,45}
+
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{keywordblue}\bfseries,
+  stringstyle=\color{stringred},
+  commentstyle=\color{commentgreen},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\title{\textbf{Explication détaillée du notebook \texttt{cv\_matcher\_mistral.ipynb}}\\
+\large Architecture, analyse cellule par cellule et inspiration pour un projet de classement de CV}
+\author{Projet PFE -- Resume Ranking RAG}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Objectif général du notebook}
+
+Le notebook \texttt{cv\_matcher\_mistral.ipynb} a pour objectif de comparer plusieurs CV avec un appel d'offre ou une fiche de poste. Il lit les documents depuis un dossier local, extrait leur texte, envoie chaque CV avec l'appel d'offre à un modèle Mistral, récupère une réponse JSON contenant un score et une justification, puis affiche un classement final.
+
+L'idée fonctionnelle est donc :
+
+\begin{quote}
+Pour chaque CV candidat, le système demande au modèle d'estimer le degré de correspondance entre le profil du candidat et les critères de l'appel d'offre.
+\end{quote}
+
+Le notebook est utile comme prototype pédagogique, car il montre clairement les étapes d'un système de matching de CV. Cependant, sa logique reste une comparaison directe par prompt : il ne construit pas une base vectorielle, ne crée pas d'embeddings et ne fait pas de recherche sémantique dans ChromaDB. Pour un projet PFE plus rigoureux, cette logique doit être enrichie par un vrai pipeline RAG.
+
+\section{Architecture ou logique globale}
+
+\subsection{Déroulement général}
+
+\begin{verbatim}
+Utilisateur
+   |
+   |-- Dossier contenant les CV
+   |-- Fichier appel d'offre
+   v
+
+Notebook Python
+   |
+   |-- Installation des dépendances
+   |-- Configuration des chemins, modèle et paramètres
+   |-- Extraction du texte de l'appel d'offre
+   |-- Extraction du texte de chaque CV
+   |-- Troncature des textes pour respecter le contexte du LLM
+   |-- Appel API Mistral pour chaque CV
+   |-- Parsing JSON de la réponse
+   |-- Tri par score décroissant
+   |-- Affichage du top candidats
+   |-- Export CSV et JSON
+   v
+
+Classement final des CV
+\end{verbatim}
+
+\subsection{Rôle de chaque bloc}
+
+\begin{longtable}{|p{3.4cm}|p{10.4cm}|}
+\hline
+\textbf{Bloc} & \textbf{Rôle dans le notebook} \\
+\hline
+Installation & Installer les bibliothèques nécessaires : client Mistral, extraction PDF, extraction Word, affichage enrichi. \\
+\hline
+Configuration & Définir les chemins des dossiers, la clé API, le modèle utilisé, le nombre de résultats et le délai entre les appels. \\
+\hline
+Extraction & Transformer les documents PDF/DOCX/TXT en texte brut exploitable par le modèle. \\
+\hline
+Chargement & Vérifier que les fichiers existent, parcourir le dossier des CV et préparer une liste de documents candidats. \\
+\hline
+Analyse LLM & Envoyer l'appel d'offre et chaque CV au modèle Mistral pour obtenir un score et une justification. \\
+\hline
+Classement & Trier les candidats selon leur score et afficher les meilleurs profils. \\
+\hline
+Export & Sauvegarder les résultats sous forme CSV et JSON pour consultation ou exploitation externe. \\
+\hline
+Analyse approfondie & Relancer une demande plus détaillée sur un candidat spécifique. \\
+\hline
+\end{longtable}
+
+\section{Explication cellule par cellule}
+
+\subsection{Cellule 1 -- Présentation du notebook}
+
+Cette cellule est une cellule Markdown. Elle sert à présenter le titre du notebook, son objectif et la structure attendue du dossier.
+
+\begin{verbatim}
+project/
+|-- cv_matcher_mistral.ipynb
+|-- appel_offre/
+|   |-- appel_offre.pdf
+|-- cvs/
+    |-- candidat1.pdf
+    |-- candidat2.docx
+\end{verbatim}
+
+\textbf{Intérêt :}
+\begin{itemize}
+  \item Donner immédiatement le rôle du notebook.
+  \item Expliquer à l'utilisateur où placer l'appel d'offre et les CV.
+  \item Réduire les erreurs liées aux chemins de fichiers.
+\end{itemize}
+
+\subsection{Cellule 2 -- Titre : installation des dépendances}
+
+Cette cellule Markdown annonce la partie installation. Elle ne contient pas de code exécuté, mais elle rend le notebook plus lisible.
+
+\subsection{Cellule 3 -- Installation des bibliothèques}
+
+\begin{lstlisting}[style=pythonstyle]
+!pip install mistralai pdfplumber python-docx rich --quiet
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{!} : dans un notebook Jupyter, ce symbole permet d'exécuter une commande système.
+  \item \texttt{pip install} : installe des packages Python.
+  \item \texttt{mistralai} : client Python pour appeler l'API Mistral.
+  \item \texttt{pdfplumber} : bibliothèque d'extraction de texte depuis les PDF.
+  \item \texttt{python-docx} : bibliothèque permettant de lire les fichiers Word \texttt{.docx}.
+  \item \texttt{rich} : bibliothèque d'affichage enrichi dans le terminal ou notebook.
+  \item \texttt{--quiet} : réduit la quantité de logs affichés pendant l'installation.
+\end{itemize}
+
+\textbf{Intérêt :} préparer l'environnement d'exécution pour que les cellules suivantes puissent importer les bibliothèques nécessaires.
+
+\textbf{Limite :} installer des dépendances directement dans un notebook est pratique pour une démonstration, mais dans une application sérieuse il vaut mieux utiliser un fichier \texttt{requirements.txt}.
+
+\subsection{Cellule 4 -- Titre : configuration}
+
+Cette cellule annonce la section où l'utilisateur définit les paramètres principaux.
+
+\subsection{Cellule 5 -- Imports et paramètres}
+
+\begin{lstlisting}[style=pythonstyle]
+import os
+import json
+import time
+from pathlib import Path
+
+MISTRAL_API_KEY = "VOTRE_CLE_API"
+CV_FOLDER = r"C:\chemin\vers\cvs"
+APPEL_OFFRE_PATH = r"C:\chemin\vers\appel_offre.docx"
+
+MISTRAL_MODEL = "mistral-large-latest"
+TOP_N = 5
+DELAY_BETWEEN_CALLS = 5
+\end{lstlisting}
+
+\textbf{Explication des imports :}
+\begin{itemize}
+  \item \texttt{os} : permet de vérifier l'existence d'un fichier avec \texttt{os.path.exists}.
+  \item \texttt{json} : permet de transformer une réponse JSON en dictionnaire Python avec \texttt{json.loads}.
+  \item \texttt{time} : utilisé pour faire une pause entre deux appels API avec \texttt{time.sleep}.
+  \item \texttt{Path} : classe moderne de Python pour manipuler les chemins de fichiers.
+\end{itemize}
+
+\textbf{Explication des variables :}
+\begin{itemize}
+  \item \texttt{MISTRAL\_API\_KEY} : clé d'accès au service Mistral. Elle ne doit pas être écrite directement dans le code final. Il faut préférer une variable d'environnement.
+  \item \texttt{CV\_FOLDER} : dossier contenant les CV à analyser.
+  \item \texttt{APPEL\_OFFRE\_PATH} : chemin du fichier de référence.
+  \item \texttt{MISTRAL\_MODEL} : nom du modèle utilisé.
+  \item \texttt{TOP\_N} : nombre de meilleurs CV à afficher.
+  \item \texttt{DELAY\_BETWEEN\_CALLS} : délai anti-limitation entre les appels au modèle.
+\end{itemize}
+
+\textbf{Détail syntaxique :}
+\begin{itemize}
+  \item \texttt{=} affecte une valeur à une variable.
+  \item \texttt{r"..."} crée une chaîne brute. C'est utile sous Windows, car les chemins contiennent des backslashes.
+  \item \texttt{print(f"...\{variable\}...")} est une f-string : elle insère une variable dans un texte.
+\end{itemize}
+
+\textbf{Point de vigilance :} le chemin local est propre à une seule machine. Pour un projet partagé, il faut utiliser une interface d'upload ou un fichier de configuration.
+
+\subsection{Cellule 6 -- Titre : extraction de texte}
+
+Cette cellule annonce la partie responsable de la lecture des PDF, DOCX et TXT.
+
+\subsection{Cellule 7 -- Fonctions d'extraction}
+
+\begin{lstlisting}[style=pythonstyle]
+import pdfplumber
+from docx import Document as DocxDocument
+
+def extract_text_from_pdf(path: str) -> str:
+    text_parts = []
+    try:
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_parts.append(page_text)
+        return "\n".join(text_parts).strip()
+    except Exception as e:
+        print(f"Erreur PDF {path}: {e}")
+        return ""
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{def} déclare une fonction.
+  \item \texttt{extract\_text\_from\_pdf} est le nom de la fonction.
+  \item \texttt{path: str} signifie que le paramètre \texttt{path} est attendu comme chaîne de caractères.
+  \item \texttt{-> str} indique que la fonction doit retourner une chaîne de caractères.
+  \item \texttt{text\_parts = []} crée une liste vide.
+  \item \texttt{try/except} permet de capturer les erreurs sans arrêter tout le notebook.
+  \item \texttt{with pdfplumber.open(path) as pdf} ouvre le PDF et garantit sa fermeture après usage.
+  \item \texttt{for page in pdf.pages} parcourt toutes les pages.
+  \item \texttt{page.extract\_text()} extrait le texte d'une page.
+  \item \texttt{append} ajoute un élément à une liste.
+  \item \texttt{"\textbackslash n".join(text\_parts)} assemble les textes de pages avec des retours à la ligne.
+  \item \texttt{strip()} supprime les espaces inutiles au début et à la fin.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+def extract_text_from_docx(path: str) -> str:
+    doc = DocxDocument(path)
+    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = " | ".join(
+                cell.text.strip()
+                for cell in row.cells
+                if cell.text.strip()
+            )
+            if row_text:
+                paragraphs.append(row_text)
+    return "\n".join(paragraphs).strip()
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{DocxDocument(path)} charge un fichier Word.
+  \item La compréhension de liste \texttt{[p.text for p in doc.paragraphs if ...]} extrait uniquement les paragraphes non vides.
+  \item Les boucles imbriquées parcourent les tableaux, les lignes et les cellules.
+  \item \texttt{" | ".join(...)} transforme plusieurs cellules en une ligne lisible.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+def extract_text(path: str) -> str:
+    ext = Path(path).suffix.lower()
+    if ext == ".pdf":
+        return extract_text_from_pdf(path)
+    elif ext in (".docx", ".doc"):
+        return extract_text_from_docx(path)
+    elif ext == ".txt":
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    else:
+        return ""
+\end{lstlisting}
+
+\textbf{Rôle de cette fonction :} choisir automatiquement la bonne méthode d'extraction selon l'extension du fichier.
+
+\textbf{Point de vigilance :} \texttt{python-docx} lit correctement les fichiers \texttt{.docx}, mais pas les anciens fichiers binaires \texttt{.doc}. Le notebook accepte \texttt{.doc}, mais l'extraction peut échouer.
+
+\begin{lstlisting}[style=pythonstyle]
+def truncate_text(text: str, max_chars: int = 6000) -> str:
+    if len(text) > max_chars:
+        return text[:max_chars] + "\n[... texte tronque ...]"
+    return text
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{len(text)} calcule le nombre de caractères.
+  \item \texttt{text[:max\_chars]} garde seulement les premiers caractères.
+  \item Cette fonction évite d'envoyer un texte trop long au modèle.
+\end{itemize}
+
+\textbf{Limite importante :} tronquer un CV peut supprimer des informations utiles. Dans un système RAG, il vaut mieux découper en chunks, vectoriser et récupérer les passages les plus pertinents.
+
+\subsection{Cellule 8 -- Titre : chargement de l'appel d'offre}
+
+Cette cellule introduit l'étape de lecture du document de référence.
+
+\subsection{Cellule 9 -- Extraction de l'appel d'offre}
+
+\begin{lstlisting}[style=pythonstyle]
+if not os.path.exists(APPEL_OFFRE_PATH):
+    raise FileNotFoundError("Fichier introuvable")
+
+appel_offre_text = extract_text(APPEL_OFFRE_PATH)
+
+if not appel_offre_text:
+    raise ValueError("Impossible d'extraire le texte")
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{if not ...} vérifie une condition négative.
+  \item \texttt{os.path.exists} vérifie si le fichier existe.
+  \item \texttt{raise FileNotFoundError} arrête l'exécution avec une erreur claire si le fichier manque.
+  \item \texttt{appel\_offre\_text} contient le texte extrait.
+  \item \texttt{raise ValueError} signale un fichier présent mais inexploitable.
+\end{itemize}
+
+\textbf{Intérêt :} empêcher le modèle de travailler sur un document vide ou incorrect.
+
+\subsection{Cellule 10 -- Titre : chargement des CV}
+
+Cette cellule annonce la partie responsable de la détection des CV dans le dossier.
+
+\subsection{Cellule 11 -- Recherche des fichiers CV}
+
+\begin{lstlisting}[style=pythonstyle]
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc"}
+
+cv_folder = Path(CV_FOLDER)
+if not cv_folder.exists():
+    raise FileNotFoundError("Dossier CV introuvable")
+
+cv_files = [
+    f for f in cv_folder.iterdir()
+    if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+]
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{\{".pdf", ".docx", ".doc"\}} est un ensemble Python. Il sert à vérifier rapidement si une extension est supportée.
+  \item \texttt{Path(CV\_FOLDER)} transforme un texte en objet chemin.
+  \item \texttt{iterdir()} liste les éléments du dossier.
+  \item \texttt{f.is\_file()} garde seulement les fichiers.
+  \item \texttt{f.suffix.lower()} récupère l'extension en minuscules.
+  \item La compréhension de liste construit automatiquement la liste des CV valides.
+\end{itemize}
+
+\textbf{Intérêt :} automatiser la détection des CV sans écrire manuellement tous les noms de fichiers.
+
+\subsection{Cellule 12 -- Extraction de tous les CV}
+
+\begin{lstlisting}[style=pythonstyle]
+cvs = []
+
+for cv_path in cv_files:
+    text = extract_text(str(cv_path))
+    if text:
+        cvs.append({"filename": cv_path.name, "text": text})
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{cvs = []} initialise une liste vide.
+  \item Chaque CV est transformé en dictionnaire avec deux clés : \texttt{filename} et \texttt{text}.
+  \item \texttt{str(cv\_path)} convertit l'objet \texttt{Path} en chaîne.
+  \item \texttt{cv\_path.name} récupère seulement le nom du fichier.
+  \item Les CV sans texte sont ignorés.
+\end{itemize}
+
+\textbf{Structure obtenue :}
+\begin{lstlisting}[style=pythonstyle]
+[
+    {"filename": "candidat1.pdf", "text": "..."},
+    {"filename": "candidat2.docx", "text": "..."}
+]
+\end{lstlisting}
+
+\subsection{Cellule 13 -- Titre : analyse par Mistral AI}
+
+Cette cellule introduit la partie centrale du notebook : l'appel au modèle.
+
+\subsection{Cellule 14 -- Client Mistral et fonction de scoring}
+
+\begin{lstlisting}[style=pythonstyle]
+from mistralai import Mistral
+
+client = Mistral(api_key=MISTRAL_API_KEY)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{from mistralai import Mistral} importe la classe cliente.
+  \item \texttt{client = Mistral(...)} crée un objet capable d'appeler l'API.
+  \item \texttt{api\_key=} est un argument nommé.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+SYSTEM_PROMPT = """
+Tu es un expert en recrutement.
+Tu reponds toujours en JSON valide.
+"""
+\end{lstlisting}
+
+\textbf{Rôle du system prompt :} fixer le comportement général du modèle. Ici, on lui demande de se comporter comme un expert RH et de répondre sous forme JSON.
+
+\begin{lstlisting}[style=pythonstyle]
+def score_cv(cv: dict, appel_offre: str) -> dict:
+    cv_text_truncated = truncate_text(cv["text"], max_chars=5000)
+    ao_text_truncated = truncate_text(appel_offre, max_chars=3000)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{cv: dict} indique que \texttt{cv} est un dictionnaire.
+  \item \texttt{appel\_offre: str} indique que l'appel d'offre est une chaîne.
+  \item \texttt{cv["text"]} accède au texte du CV.
+  \item Le CV est limité à 5000 caractères et l'appel d'offre à 3000 caractères.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+user_prompt = f"""
+Voici un appel d'offre :
+{ao_text_truncated}
+
+Voici le CV du candidat :
+{cv_text_truncated}
+
+Retourne uniquement un JSON avec score, niveau, resume,
+points forts, points faibles et justification.
+"""
+\end{lstlisting}
+
+\textbf{Intérêt du prompt utilisateur :}
+\begin{itemize}
+  \item Donner au modèle le document de référence.
+  \item Donner le CV à évaluer.
+  \item Imposer une structure de sortie.
+  \item Faciliter ensuite le parsing avec \texttt{json.loads}.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+response = client.chat.complete(
+    model=MISTRAL_MODEL,
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ],
+    temperature=0.1,
+    max_tokens=800,
+)
+\end{lstlisting}
+
+\textbf{Explication détaillée :}
+\begin{itemize}
+  \item \texttt{client.chat.complete} envoie une requête de chat au modèle.
+  \item \texttt{model=MISTRAL\_MODEL} choisit le modèle.
+  \item \texttt{messages} est une liste de messages.
+  \item Chaque message est un dictionnaire avec un \texttt{role} et un \texttt{content}.
+  \item \texttt{temperature=0.1} rend la réponse plus stable et moins créative.
+  \item \texttt{max\_tokens=800} limite la longueur de la réponse générée.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+raw = response.choices[0].message.content.strip()
+
+if raw.startswith("```"):
+    raw = raw.split("```")[1]
+    if raw.lower().startswith("json"):
+        raw = raw[4:]
+
+result = json.loads(raw)
+result["filename"] = cv["filename"]
+result["error"] = None
+return result
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{response.choices[0]} récupère la première réponse du modèle.
+  \item \texttt{message.content} contient le texte généré.
+  \item \texttt{strip()} supprime les espaces autour.
+  \item Le bloc \texttt{if raw.startswith("```")} nettoie les réponses entourées de blocs Markdown.
+  \item \texttt{json.loads(raw)} convertit le texte JSON en dictionnaire Python.
+  \item Le nom du fichier est ajouté au résultat pour garder la traçabilité.
+  \item \texttt{error = None} signifie que l'analyse a réussi.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+except json.JSONDecodeError as e:
+    return {"filename": cv["filename"], "score": 0, "error": str(e)}
+except Exception as e:
+    return {"filename": cv["filename"], "score": 0, "error": str(e)}
+\end{lstlisting}
+
+\textbf{Intérêt :} si le modèle retourne un JSON invalide ou si l'appel API échoue, le notebook ne s'arrête pas complètement. Le CV est marqué en erreur avec un score nul.
+
+\textbf{Limite :} un score de 0 pour une erreur technique peut être confondu avec un vrai mauvais profil. Il est préférable de distinguer clairement \texttt{status="error"} et \texttt{score}.
+
+\subsection{Cellule 15 -- Import redondant}
+
+\begin{lstlisting}[style=pythonstyle]
+import mistralai
+\end{lstlisting}
+
+Cette cellule importe le package \texttt{mistralai}, mais le client nécessaire a déjà été importé dans la cellule précédente avec \texttt{from mistralai import Mistral}. Elle n'apporte donc pas de fonctionnalité nouvelle.
+
+\textbf{Intérêt réel :} presque nul dans cette version du notebook.
+
+\subsection{Cellule 16 -- Cellule vide}
+
+Cette cellule ne contient aucun code. Elle peut être supprimée pour rendre le notebook plus propre.
+
+\subsection{Cellule 17 -- Analyse de tous les CV}
+
+\begin{lstlisting}[style=pythonstyle]
+results = []
+total = len(cvs)
+
+for i, cv in enumerate(cvs, 1):
+    result = score_cv(cv, appel_offre_text)
+    results.append(result)
+
+    if i < total:
+        time.sleep(DELAY_BETWEEN_CALLS)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{results = []} prépare la liste finale des résultats.
+  \item \texttt{len(cvs)} donne le nombre total de CV.
+  \item \texttt{enumerate(cvs, 1)} parcourt les CV en donnant un compteur qui commence à 1.
+  \item \texttt{score\_cv(...)} appelle le modèle pour un CV.
+  \item \texttt{results.append(result)} stocke le résultat.
+  \item \texttt{time.sleep(...)} impose une pause entre deux requêtes.
+\end{itemize}
+
+\textbf{Intérêt :} automatiser l'analyse de tous les candidats.
+
+\textbf{Limite :} l'analyse est séquentielle. Pour beaucoup de CV, elle peut être lente. Dans une application backend, il faut envisager le traitement par lots, une file de tâches ou un statut de progression.
+
+\subsection{Cellule 18 -- Titre : classement et résultats}
+
+Cette cellule annonce l'affichage du classement final.
+
+\subsection{Cellule 19 -- Tri et affichage du top}
+
+\begin{lstlisting}[style=pythonstyle]
+ranked = sorted(
+    [r for r in results if not r["error"]],
+    key=lambda x: x["score"],
+    reverse=True
+)
+errors = [r for r in results if r["error"]]
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item La compréhension de liste garde seulement les résultats sans erreur.
+  \item \texttt{sorted(...)} trie la liste.
+  \item \texttt{key=lambda x: x["score"]} indique que le tri se fait selon le score.
+  \item \texttt{reverse=True} trie du plus grand au plus petit.
+  \item \texttt{errors} contient les CV qui n'ont pas pu être analysés.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+for rank, r in enumerate(ranked[:TOP_N], 1):
+    score = r.get("score", 0)
+    niveau = r.get("niveau_match", "N/A")
+    bar = "#" * (score // 10) + "-" * (10 - score // 10)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{ranked[:TOP\_N]} garde les meilleurs résultats.
+  \item \texttt{r.get("score", 0)} récupère le score avec une valeur par défaut.
+  \item \texttt{score // 10} est une division entière.
+  \item La barre visuelle représente le score sur 10 blocs.
+\end{itemize}
+
+\textbf{Intérêt :} donner une lecture rapide du classement.
+
+\subsection{Cellule 20 -- Titre : tableau récapitulatif}
+
+Cette cellule introduit la transformation des résultats en tableau.
+
+\subsection{Cellule 21 -- DataFrame Pandas}
+
+\begin{lstlisting}[style=pythonstyle]
+import pandas as pd
+
+df_data = []
+for rank, r in enumerate(ranked, 1):
+    df_data.append({
+        "Rang": rank,
+        "Fichier CV": r["filename"],
+        "Score (/100)": r.get("score", 0),
+        "Niveau Match": r.get("niveau_match", "N/A"),
+    })
+
+df = pd.DataFrame(df_data)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{pandas} est une bibliothèque de manipulation de données.
+  \item \texttt{as pd} crée un alias court.
+  \item \texttt{df\_data} est une liste de lignes.
+  \item Chaque ligne est un dictionnaire.
+  \item \texttt{pd.DataFrame(df\_data)} transforme la liste en tableau.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+def color_score(val):
+    if val >= 70:
+        return "background-color: green"
+    elif val >= 45:
+        return "background-color: orange"
+    else:
+        return "background-color: red"
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item Cette fonction retourne un style CSS selon le score.
+  \item Vert : bon score.
+  \item Orange : score moyen.
+  \item Rouge : score faible.
+\end{itemize}
+
+\textbf{Point technique :} dans les versions récentes de Pandas, \texttt{applymap} sur un style peut être remplacé par \texttt{map}. Ce n'est pas bloquant, mais c'est à surveiller selon la version installée.
+
+\subsection{Cellule 22 -- Titre : export des résultats}
+
+Cette cellule annonce la sauvegarde des résultats dans des fichiers.
+
+\subsection{Cellule 23 -- Export CSV et JSON}
+
+\begin{lstlisting}[style=pythonstyle]
+output_csv = "resultats_matching_cvs.csv"
+df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+
+output_json = "resultats_matching_cvs_detail.json"
+with open(output_json, "w", encoding="utf-8") as f:
+    json.dump(ranked, f, ensure_ascii=False, indent=2)
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item \texttt{to\_csv} exporte le tableau en CSV.
+  \item \texttt{index=False} évite d'ajouter l'index Pandas comme colonne.
+  \item \texttt{utf-8-sig} améliore l'ouverture du CSV dans Excel.
+  \item \texttt{open(..., "w")} ouvre un fichier en écriture.
+  \item \texttt{json.dump} écrit les résultats détaillés en JSON.
+  \item \texttt{ensure\_ascii=False} conserve les accents.
+  \item \texttt{indent=2} rend le JSON lisible.
+\end{itemize}
+
+\textbf{Point de vigilance :} le calcul du score moyen utilise \texttt{len(ranked)}. Si aucun CV n'a été analysé avec succès, il faut éviter une division par zéro.
+
+\subsection{Cellule 24 -- Titre : analyse approfondie d'un candidat}
+
+Cette cellule annonce une option supplémentaire : analyser en détail un candidat particulier.
+
+\subsection{Cellule 25 -- Analyse détaillée d'un candidat}
+
+\begin{lstlisting}[style=pythonstyle]
+CANDIDAT_A_ANALYSER = ranked[0]["filename"] if ranked else None
+
+if CANDIDAT_A_ANALYSER:
+    cv_target = next(
+        (c for c in cvs if c["filename"] == CANDIDAT_A_ANALYSER),
+        None
+    )
+\end{lstlisting}
+
+\textbf{Explication :}
+\begin{itemize}
+  \item L'expression \texttt{ranked[0]["filename"] if ranked else None} choisit le meilleur candidat si la liste n'est pas vide.
+  \item \texttt{next(..., None)} cherche le CV correspondant dans la liste \texttt{cvs}.
+  \item Si aucun CV ne correspond, la variable vaut \texttt{None}.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+deep_prompt = f"""
+Fais une analyse detaillee :
+1. Competences techniques matchees
+2. Experiences pertinentes
+3. Lacunes
+4. Recommandation finale
+5. Questions a poser en entretien
+"""
+\end{lstlisting}
+
+\textbf{Intérêt :} après le classement global, cette cellule permet de produire une analyse RH plus qualitative sur un seul profil.
+
+\textbf{Limite :} cette analyse reste basée sur le texte tronqué. Elle peut ignorer des informations placées plus loin dans le CV.
+
+\section{Explication des éléments de code importants}
+
+\subsection{Les symboles et mots-clés récurrents}
+
+\begin{longtable}{|p{3cm}|p{10.8cm}|}
+\hline
+\textbf{Élément} & \textbf{Rôle} \\
+\hline
+\texttt{import} & Charge une bibliothèque Python. \\
+\hline
+\texttt{from ... import ...} & Importe seulement un élément précis depuis une bibliothèque. \\
+\hline
+\texttt{as} & Donne un alias, par exemple \texttt{pandas as pd}. \\
+\hline
+\texttt{=} & Affecte une valeur à une variable. \\
+\hline
+\texttt{==} & Compare deux valeurs. \\
+\hline
+\texttt{if / elif / else} & Crée des conditions. \\
+\hline
+\texttt{for} & Répète une action sur plusieurs éléments. \\
+\hline
+\texttt{try / except} & Gère les erreurs. \\
+\hline
+\texttt{def} & Déclare une fonction. \\
+\hline
+\texttt{return} & Renvoie le résultat d'une fonction. \\
+\hline
+\texttt{[]} & Représente une liste ou un accès par index/clé. \\
+\hline
+\texttt{\{\}} & Représente un dictionnaire ou un ensemble selon le contenu. \\
+\hline
+\texttt{()} & Appelle une fonction ou groupe des expressions. \\
+\hline
+\texttt{:} & Introduit le bloc d'une fonction, condition ou boucle. \\
+\hline
+\texttt{.} & Accède à une méthode ou propriété d'un objet. \\
+\hline
+\texttt{f"..."} & Chaîne formatée permettant d'insérer des variables. \\
+\hline
+\texttt{lambda} & Petite fonction anonyme utilisée ici pour trier par score. \\
+\hline
+\texttt{None} & Valeur spéciale signifiant absence de valeur. \\
+\hline
+\texttt{True / False} & Valeurs booléennes. \\
+\hline
+\end{longtable}
+
+\subsection{Les structures de données}
+
+\textbf{Liste :}
+\begin{lstlisting}[style=pythonstyle]
+cvs = []
+\end{lstlisting}
+Une liste sert à stocker plusieurs éléments ordonnés.
+
+\textbf{Dictionnaire :}
+\begin{lstlisting}[style=pythonstyle]
+{"filename": "cv.pdf", "text": "contenu du CV"}
+\end{lstlisting}
+Un dictionnaire stocke des paires clé-valeur.
+
+\textbf{DataFrame :}
+\begin{lstlisting}[style=pythonstyle]
+df = pd.DataFrame(df_data)
+\end{lstlisting}
+Un DataFrame est un tableau structuré, très utile pour afficher et exporter des résultats.
+
+\subsection{Les choix de scoring}
+
+Le score est demandé au LLM sous forme d'un entier entre 0 et 100. Le notebook ne calcule pas mathématiquement ce score par une formule interne ; il demande au modèle de l'estimer.
+
+\textbf{Avantage :}
+\begin{itemize}
+  \item Le modèle peut prendre en compte le sens du texte, pas seulement des mots-clés.
+\end{itemize}
+
+\textbf{Risque :}
+\begin{itemize}
+  \item Deux appels peuvent produire des scores légèrement différents.
+  \item Le score est difficile à auditer si le prompt n'impose pas des critères pondérés.
+  \item Sans preuves récupérées automatiquement, la justification peut manquer de traçabilité.
+\end{itemize}
+
+\section{Analyse critique du notebook}
+
+\subsection{Points forts}
+
+\begin{itemize}
+  \item Le déroulement est clair : charger, extraire, analyser, classer, exporter.
+  \item La sortie JSON facilite l'exploitation automatique.
+  \item Les erreurs de fichiers sont partiellement gérées.
+  \item Le tableau final rend le résultat lisible.
+  \item L'export CSV/JSON permet de conserver les résultats.
+\end{itemize}
+
+\subsection{Limites techniques}
+
+\begin{itemize}
+  \item La clé API est écrite directement dans le notebook, ce qui n'est pas recommandé.
+  \item Les chemins sont fixes et propres à une machine.
+  \item Le notebook tronque les textes au lieu de faire une recherche intelligente dans tout le contenu.
+  \item Le scoring dépend fortement du prompt et du modèle.
+  \item Il n'y a pas de base vectorielle.
+  \item Il n'y a pas d'embeddings.
+  \item Il n'y a pas de mécanisme de preuves récupérées par similarité.
+  \item Le format \texttt{.doc} est annoncé, mais pas réellement fiable avec \texttt{python-docx}.
+  \item Le score moyen peut provoquer une erreur si aucun CV n'est classé.
+\end{itemize}
+
+\section{Inspiration pour le projet de classement de CV}
+
+\subsection{Ce qui est utile à reprendre}
+
+Le notebook fournit une bonne logique fonctionnelle de départ :
+
+\begin{enumerate}
+  \item Une fiche de poste sert de référence.
+  \item Plusieurs CV sont chargés.
+  \item Chaque CV reçoit un score.
+  \item Les résultats sont triés.
+  \item Le système affiche des points forts, points faibles et justifications.
+\end{enumerate}
+
+Cette logique correspond à l'expérience utilisateur attendue dans une application de recrutement.
+
+\subsection{Adaptation vers une architecture RAG plus robuste}
+
+Pour un projet PFE, la logique peut être renforcée de cette manière :
+
+\begin{verbatim}
+Fiche de poste PDF
+   |
+   |-- Extraction du texte
+   |-- Construction d'une requete semantique
+   v
+
+CV PDF uploades
+   |
+   |-- Extraction du texte
+   |-- Decoupage en chunks
+   |-- Embeddings avec qwen3-embedding via Ollama
+   |-- Stockage des vecteurs dans ChromaDB
+   v
+
+Recherche semantique
+   |
+   |-- Recuperation des passages les plus proches de la fiche
+   v
+
+LLM Qwen
+   |
+   |-- Analyse avec preuves
+   |-- Score par critere
+   |-- Points forts/faibles
+   |-- Classement final
+\end{verbatim}
+
+\subsection{Pourquoi les embeddings changent la qualité du projet}
+
+Dans le notebook, le modèle reçoit une partie tronquée du CV. Si une compétence importante apparaît après la limite de caractères, elle peut être perdue.
+
+Dans une approche RAG :
+
+\begin{itemize}
+  \item le CV est découpé en chunks ;
+  \item chaque chunk devient un vecteur ;
+  \item ChromaDB retrouve les passages proches des critères ;
+  \item le LLM analyse seulement les preuves les plus pertinentes ;
+  \item le classement devient plus traçable.
+\end{itemize}
+
+\subsection{Recommandations pour le projet final}
+
+\begin{enumerate}
+  \item Garder l'interface simple : upload fiche de poste + upload CV + bouton analyser.
+  \item Utiliser ChromaDB comme base vectorielle temporaire du run.
+  \item Utiliser Ollama localement pour éviter la dépendance à une clé externe.
+  \item Utiliser \texttt{qwen3-embedding:0.6b} pour transformer les textes en vecteurs.
+  \item Utiliser \texttt{qwen2.5:7b} ou un autre modèle Qwen pour générer l'analyse.
+  \item Ne pas limiter artificiellement le nombre de CV.
+  \item Afficher les preuves textuelles utilisées pour chaque candidat.
+  \item Scorer par critères pondérés plutôt que par score global vague.
+  \item Séparer les erreurs techniques des faibles scores métier.
+  \item Exporter les résultats en JSON/CSV pour audit.
+\end{enumerate}
+
+\subsection{Formule de scoring conseillée}
+
+Au lieu de demander seulement un score global au modèle, on peut demander un score par critère :
+
+\begin{longtable}{|p{5cm}|p{2.5cm}|p{6cm}|}
+\hline
+\textbf{Critère} & \textbf{Poids} & \textbf{Preuves attendues} \\
+\hline
+Compétences obligatoires & 40 & Python, SQL, BI, outils demandés, technologies du poste. \\
+\hline
+Expérience et projets & 25 & Projets, stages, réalisations, contexte professionnel. \\
+\hline
+Compétences souhaitées & 20 & Outils secondaires, documentation, autonomie, collaboration. \\
+\hline
+Cohérence globale & 15 & Formation, langues, rigueur, alignement général. \\
+\hline
+\end{longtable}
+
+Le score final devient :
+
+\[
+ScoreFinal = ScoreObligatoire + ScoreExperience + ScoreSouhaite + ScoreCoherence
+\]
+
+Cette approche est plus défendable, car chaque point du score correspond à une partie de la fiche de poste.
+
+\section{Conclusion}
+
+Le notebook \texttt{cv\_matcher\_mistral.ipynb} montre une première logique de matching : extraire les textes, interroger un LLM, parser une réponse JSON, trier les candidats et exporter les résultats. C'est une base compréhensible et utile pour expliquer le besoin métier.
+
+Pour un projet PFE complet, cette logique doit être transformée en pipeline applicatif plus rigoureux : extraction robuste, chunking, embeddings, ChromaDB, retrieval, analyse LLM avec preuves, scoring par critères et interface web. Cette évolution rend le système plus fiable, plus explicable et plus adapté à un vrai contexte de recrutement.
+
+\end{document}
